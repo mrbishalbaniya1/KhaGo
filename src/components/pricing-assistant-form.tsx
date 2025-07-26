@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sparkles, Lightbulb, DollarSign, AlertCircle } from 'lucide-react';
+import { Sparkles, Lightbulb, AlertCircle } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { mockProducts } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
@@ -94,7 +94,7 @@ export function PricingAssistantForm() {
               <FormItem>
                 <FormLabel>Product Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Margherita Pizza" {...field} />
+                  <Input placeholder="e.g., Chicken Momo" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -119,7 +119,7 @@ export function PricingAssistantForm() {
               name="currentPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current Price ($)</FormLabel>
+                  <FormLabel>Current Price (NPR)</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
                   </FormControl>
@@ -209,7 +209,7 @@ export function PricingAssistantForm() {
               <div className="mb-4">
                 <p className="text-sm text-muted-foreground">Suggested Price</p>
                 <p className="text-5xl font-bold text-primary flex items-center justify-center">
-                  <DollarSign className="h-8 w-8 mr-1" />
+                  <span className="text-3xl mr-1">NPR</span>
                   {result.suggestedPrice.toFixed(2)}
                 </p>
               </div>

@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Clock, Hash, DollarSign } from 'lucide-react';
+import { MoreHorizontal, Clock, Hash } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,8 +83,8 @@ export default function OrdersPage() {
                         <Clock className="h-4 w-4" />
                         <span>{format(order.createdAt, 'p')}</span>
                     </div>
-                     <div className="flex items-center gap-2 font-bold text-lg text-foreground">
-                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                     <div className="flex items-center gap-1 font-bold text-lg text-foreground">
+                        <span className="text-sm font-semibold">NPR</span>
                         <span>{order.totalPrice.toFixed(2)}</span>
                     </div>
                 </div>

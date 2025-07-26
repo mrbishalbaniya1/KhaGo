@@ -53,7 +53,7 @@ export default function ProductsPage() {
               <TableRow key={product.id}>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>{product.category}</TableCell>
-                <TableCell>${product.price.toFixed(2)}</TableCell>
+                <TableCell>NPR {product.price.toFixed(2)}</TableCell>
                 <TableCell>{product.stockQty}</TableCell>
                 <TableCell>
                   <Badge variant={product.available ? 'default' : 'destructive'} className={product.available ? 'bg-green-500' : ''}>

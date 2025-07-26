@@ -15,7 +15,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { DollarSign, ClipboardList, Clock, MinusCircle } from 'lucide-react';
+import { ClipboardList, Clock, MinusCircle } from 'lucide-react';
 import { mockOrders, mockExpenses } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -44,13 +44,13 @@ export default function DashboardPage() {
   useEffect(() => {
     setIsClient(true);
     setChartData([
-      { date: "Mon", sales: Math.floor(Math.random() * 2000) + 1000 },
-      { date: "Tue", sales: Math.floor(Math.random() * 2000) + 1000 },
-      { date: "Wed", sales: Math.floor(Math.random() * 2000) + 1000 },
-      { date: "Thu", sales: Math.floor(Math.random() * 2000) + 1000 },
-      { date: "Fri", sales: Math.floor(Math.random() * 2000) + 2000 },
-      { date: "Sat", sales: Math.floor(Math.random() * 2000) + 3000 },
-      { date: "Sun", sales: Math.floor(Math.random() * 2000) + 2500 },
+      { date: "Mon", sales: Math.floor(Math.random() * 20000) + 10000 },
+      { date: "Tue", sales: Math.floor(Math.random() * 20000) + 10000 },
+      { date: "Wed", sales: Math.floor(Math.random() * 20000) + 10000 },
+      { date: "Thu", sales: Math.floor(Math.random() * 20000) + 10000 },
+      { date: "Fri", sales: Math.floor(Math.random() * 20000) + 20000 },
+      { date: "Sat", sales: Math.floor(Math.random() * 20000) + 30000 },
+      { date: "Sun", sales: Math.floor(Math.random() * 20000) + 25000 },
     ]);
     const today = new Date().toDateString();
     setTodaysOrders(mockOrders.filter(order => new Date(order.createdAt).toDateString() === today).length);
@@ -68,10 +68,10 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">
               Total Revenue
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-bold text-muted-foreground">NPR</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
             </p>
@@ -114,7 +114,7 @@ export default function DashboardPage() {
             <MinusCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
+            <div className="text-2xl font-bold">NPR {totalExpenses.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">+2% from last month</p>
           </CardContent>
         </Card>
@@ -123,7 +123,7 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle>Weekly Sales Overview</CardTitle>
           <CardDescription>
-            A look at sales performance over the last 7 days.
+            A look at sales performance over the last 7 days. (in NPR)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={10}
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => `NPR ${value / 1000}k`}
               />
               <ChartTooltip
                 cursor={false}

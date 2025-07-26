@@ -47,7 +47,7 @@ export default function ExpensesPage() {
                 <TableCell>{format(expense.date, 'MMM d, yyyy')}</TableCell>
                 <TableCell className="font-medium">{expense.category}</TableCell>
                 <TableCell>{expense.description}</TableCell>
-                <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">NPR {expense.amount.toFixed(2)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
