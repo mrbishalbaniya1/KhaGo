@@ -24,6 +24,7 @@ import {
   Banknote,
   User as UserIcon,
   AreaChart,
+  Package,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
@@ -31,6 +32,7 @@ import { MobileNav } from '@/components/mobile-nav';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/orders', label: 'Orders', icon: ClipboardList },
+  { href: '/products', label: 'Products', icon: Package },
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
   { href: '/reports', label: 'Reports', icon: AreaChart },
@@ -52,14 +54,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <UserNav />
         </header>
         <main className="flex-1 overflow-auto p-4 pb-20 sm:p-6">{children}</main>
-        <MobileNav navItems={navItems} />
+        <MobileNav navItems={navItems.filter(item => item.href !== '/products')} />
       </div>
     );
   }
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2.5">
             <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
