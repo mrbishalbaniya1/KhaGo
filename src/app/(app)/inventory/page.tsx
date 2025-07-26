@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { InventoryTransaction } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const transactionSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -64,6 +65,11 @@ export default function InventoryPage() {
   const [transactions, setTransactions] = useState<InventoryTransaction[]>(initialTransactions);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -195,18 +201,29 @@ export default function InventoryPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((tx) => (
-              <TableRow key={tx.id}>
-                <TableCell>{format(tx.date, 'MMM d, yyyy p')}</TableCell>
-                <TableCell className="font-medium">{tx.productName}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="capitalize">{tx.reason.replace('-', ' ')}</Badge>
-                </TableCell>
-                <TableCell className={`text-right font-medium ${tx.qtyChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {tx.qtyChange > 0 ? `+${tx.qtyChange}` : tx.qtyChange}
-                </TableCell>
-              </TableRow>
-            ))}
+            {isClient ? (
+              transactions.map((tx) => (
+                <TableRow key={tx.id}>
+                  <TableCell>{format(tx.date, 'MMM d, yyyy p')}</TableCell>
+                  <TableCell className="font-medium">{tx.productName}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="capitalize">{tx.reason.replace('-', ' ')}</Badge>
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${tx.qtyChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {tx.qtyChange > 0 ? `+${tx.qtyChange}` : tx.qtyChange}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-[80px] rounded-full" /></TableCell>
+                  <TableCell className="text-right"><Skeleton className="h-4 w-[40px] ml-auto" /></TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
