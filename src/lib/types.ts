@@ -1,4 +1,6 @@
 
+import { z } from 'zod';
+
 export type User = {
   uid: string;
   name?: string;
@@ -7,6 +9,12 @@ export type User = {
   avatar?: string;
   lastSeen?: string;
 };
+
+export const userSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email." }),
+  role: z.enum(['admin', 'employee'], { required_error: 'Role is required.' }),
+});
 
 export type Product = {
   id: string;
