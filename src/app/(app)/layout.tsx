@@ -27,6 +27,7 @@ import {
   AreaChart,
   Package,
   Sparkles,
+  Settings,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
@@ -40,8 +41,13 @@ const navItems = [
   { href: '/reports', label: 'Reports', icon: AreaChart },
   { href: '/pricing-assistant', label: 'AI Pricing', icon: Sparkles },
   { href: '/users', label: 'Users', icon: Users },
-  { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
+
+const bottomNavItems = [
+    { href: '/profile', label: 'My Account', icon: UserIcon },
+    { href: '/settings', label: 'Settings', icon: Settings },
+];
+
 
 const mobileNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -87,8 +93,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarMenu>
+          <SidebarMenu className="flex-1">
             {navItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href)}
+                  tooltip={item.label}
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+           <SidebarMenu>
+            {bottomNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
@@ -106,8 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
-          <SidebarTrigger />
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
           <UserNav />
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
