@@ -78,7 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Icons.logo className="h-8 w-8" />
             </Button>
             <div className="flex flex-col">
-              <h2 className="font-headline text-xl font-bold tracking-tight">
+              <h2 className="font-headline text-2xl font-bold tracking-tight">
                 CulinaryFlow
               </h2>
             </div>
