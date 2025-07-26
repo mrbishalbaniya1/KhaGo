@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Clock, MinusCircle, Package, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { Clock, MinusCircle, Package, AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
 import { mockOrders, mockExpenses, mockProducts } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order, Product } from '@/lib/types';
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   }, []);
 
   const totalRevenue = mockOrders.reduce((acc, order) => acc + order.totalPrice, 0);
-  const pendingOrders = mockOrders.filter(order => order.status === 'pending' || order.status === 'preparing').length;
+  const totalOrders = mockOrders.length;
   const totalExpenses = mockExpenses.reduce((acc, expense) => acc + expense.amount, 0);
   const lowStockItems = mockProducts.filter(p => p.stockQty < 30).length;
 
@@ -75,8 +75,8 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {isClient ? <StatCard title="Total Revenue" value={totalRevenue.toFixed(2)} icon={Package} currency="NPR" description="+20.1% from last month" /> : <StatCardSkeleton />}
-        {isClient ? <StatCard title="Pending Orders" value={pendingOrders} icon={Clock} description="+19% from last month" /> : <StatCardSkeleton />}
+        {isClient ? <StatCard title="Total Revenue" value={totalRevenue.toFixed(2)} icon={DollarSign} currency="NPR" description="+20.1% from last month" /> : <StatCardSkeleton />}
+        {isClient ? <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} description="+19% from last month" /> : <StatCardSkeleton />}
         {isClient ? <StatCard title="Total Expenses" value={totalExpenses.toFixed(2)} icon={MinusCircle} currency="NPR" description="+2% from last month" /> : <StatCardSkeleton />}
         {isClient ? <StatCard title="Low Stock Items" value={lowStockItems} icon={AlertTriangle} description="Items needing attention" /> : <StatCardSkeleton />}
       </div>
