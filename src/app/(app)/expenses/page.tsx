@@ -55,7 +55,14 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Expense } from '@/lib/types';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 
 const expenseSchema = z.object({
   category: z.string().min(1, 'Category is required'),
@@ -70,7 +77,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('week');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
@@ -268,18 +275,26 @@ export default function ExpensesPage() {
                 }}
               />
             </div>
-            <Tabs value={dateFilter} onValueChange={(value) => {
-                setDateFilter(value);
-                setCurrentPage(1);
-            }}>
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="today">Today</TabsTrigger>
-                <TabsTrigger value="week">This Week</TabsTrigger>
-                <TabsTrigger value="month">This Month</TabsTrigger>
-                <TabsTrigger value="year">This Year</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <Select
+              value={dateFilter}
+              onValueChange={(value) => {
+                if (value) {
+                  setDateFilter(value);
+                  setCurrentPage(1);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+              </SelectContent>
+            </Select>
         </div>
       </CardHeader>
       <CardContent>
