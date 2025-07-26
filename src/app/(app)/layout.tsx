@@ -25,6 +25,7 @@ import {
   User as UserIcon,
   AreaChart,
   Package,
+  Sparkles,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
@@ -36,6 +37,7 @@ const navItems = [
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
   { href: '/reports', label: 'Reports', icon: AreaChart },
+  { href: '/pricing-assistant', label: 'AI Pricing', icon: Sparkles },
   { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
 
@@ -54,7 +56,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <UserNav />
         </header>
         <main className="flex-1 overflow-auto p-4 pb-20 sm:p-6">{children}</main>
-        <MobileNav navItems={navItems.filter(item => item.href !== '/products')} />
+        <MobileNav navItems={navItems} />
       </div>
     );
   }
