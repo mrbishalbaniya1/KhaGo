@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ClipboardList, Clock, MinusCircle, Package, AlertTriangle } from 'lucide-react';
+import { Clock, MinusCircle, Package, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { mockOrders, mockExpenses, mockProducts } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order, Product } from '@/lib/types';
@@ -17,7 +17,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 
 
 const statusStyles: { [key: string]: string } = {
@@ -89,7 +88,7 @@ export default function DashboardPage() {
               <CardTitle>Recent Orders</CardTitle>
               <CardDescription>A summary of the last 5 customer orders.</CardDescription>
             </div>
-             <Button asChild size="sm">
+             <Button asChild size="sm" variant="outline">
                 <Link href="/orders">View All <ArrowUpRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </CardHeader>
@@ -126,7 +125,7 @@ export default function DashboardPage() {
                     <CardTitle>Inventory Highlights</CardTitle>
                     <CardDescription>Items with low stock levels.</CardDescription>
                 </div>
-                 <Button asChild size="sm">
+                 <Button asChild size="sm" variant="outline">
                     <Link href="/inventory">View All <ArrowUpRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
             </CardHeader>

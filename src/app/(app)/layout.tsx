@@ -71,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
            </Link>
           <UserNav />
         </header>
-        <main className="flex-1 overflow-auto p-4 pb-20 sm:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 pb-24 sm:p-6">{children}</main>
         <MobileNav navItems={mobileNavItems} />
       </div>
     );
@@ -79,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar variant="inset" collapsible="icon">
+      <Sidebar variant="sidebar" collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2.5">
             <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
@@ -100,6 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   asChild
                   isActive={pathname.startsWith(item.href)}
                   tooltip={item.label}
+                  size="lg"
                 >
                   <Link href={item.href}>
                     <item.icon />
@@ -116,6 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   asChild
                   isActive={pathname.startsWith(item.href)}
                   tooltip={item.label}
+                   size="lg"
                 >
                   <Link href={item.href}>
                     <item.icon />
