@@ -1,16 +1,26 @@
 
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Clock, Hash } from 'lucide-react';
+import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +28,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mockOrders } from '@/lib/mock-data';
+import { mockOrders as initialOrders } from '@/lib/mock-data';
+import type { Order } from '@/lib/types';
 import { format } from 'date-fns';
-import { Separator } from '@/components/ui/separator';
+import { TableToolbar } from '@/components/ui/table-toolbar';
+import { TablePagination } from '@/components/ui/table-pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -30,70 +49,130 @@ const statusStyles: { [key: string]: string } = {
   paid: 'bg-gray-500/10 text-muted-foreground border-gray-500/20',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const filteredOrders = useMemo(() => {
+    return orders
+      .filter((order) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          order.tokenNumber.toLowerCase().includes(searchLower) ||
+          order.tableNumber.toString().includes(searchLower)
+        );
+      })
+      .filter((order) => {
+        if (statusFilter === 'all') return true;
+        return order.status === statusFilter;
+      });
+  }, [orders, searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
-    <div className="flex flex-col gap-6">
-       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-headline text-3xl font-bold tracking-tight">Orders</h1>
-          <p className="text-muted-foreground">View and manage customer orders.</p>
-        </div>
-        {/* TODO: Add filtering controls */}
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {mockOrders.map((order) => (
-          <Card key={order.id} className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg">Order #{order.tokenNumber}</CardTitle>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button aria-haspopup="true" size="icon" variant="ghost">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Toggle menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem>Update Status</DropdownMenuItem>
-                  <DropdownMenuItem>Print Receipt</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                        <Hash className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Table {order.tableNumber}</span>
-                    </div>
-                     <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
-                        {order.status}
-                    </Badge>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                    {order.products.map(p => (
-                        <div key={p.productId} className="flex justify-between items-center text-sm">
-                            <p>{p.name}</p>
-                            <p className="text-muted-foreground">x{p.qty}</p>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-            <CardFooter className="flex-col items-start gap-2 pt-4 border-t">
-                <div className="flex justify-between w-full items-center">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>{format(order.createdAt, 'p')}</span>
-                    </div>
-                     <div className="flex items-center gap-1 font-bold text-lg text-foreground">
-                        <span className="text-sm font-semibold">NPR</span>
-                        <span>{order.totalPrice.toFixed(2)}</span>
-                    </div>
-                </div>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <TableToolbar
+            title="Orders"
+            description="View and manage customer orders."
+            searchTerm={searchTerm}
+            onSearchTermChange={(term) => {
+                setSearchTerm(term);
+                setCurrentPage(1);
+            }}
+            searchPlaceholder="Search by order or table number..."
+            showDateFilter={false}
+        >
+            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="preparing">Preparing</SelectItem>
+                    <SelectItem value="ready">Ready</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+            </Select>
+        </TableToolbar>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order</TableHead>
+              <TableHead>Table</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Items</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedOrders.length > 0 ? (
+                paginatedOrders.map((order) => (
+                    <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
+                        <TableCell>{order.tableNumber}</TableCell>
+                        <TableCell>
+                            <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
+                                {order.status}
+                            </Badge>
+                        </TableCell>
+                         <TableCell>
+                            {order.products.map(p => p.name).join(', ')}
+                         </TableCell>
+                        <TableCell>{format(order.createdAt, 'MMM d, yyyy p')}</TableCell>
+                        <TableCell className="text-right font-medium">NPR {order.totalPrice.toFixed(2)}</TableCell>
+                        <TableCell>
+                           <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button aria-haspopup="true" size="icon" variant="ghost">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Toggle menu</span>
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem>Update Status</DropdownMenuItem>
+                                <DropdownMenuItem>Print Receipt</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                        No orders found.
+                    </TableCell>
+                </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+       <CardFooter>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredOrders.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            itemName="orders"
+          />
+        </CardFooter>
+    </Card>
   );
 }
