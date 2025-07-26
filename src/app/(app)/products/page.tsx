@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -61,6 +62,8 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { TableToolbar } from '@/components/ui/table-toolbar';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -72,9 +75,13 @@ const productSchema = z.object({
   spoilageRisk: z.enum(['low', 'medium', 'high']),
 });
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -104,200 +111,244 @@ export default function ProductsPage() {
     setIsDialogOpen(false);
   };
 
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        product.name.toLowerCase().includes(searchLower) ||
+        product.category.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [products, searchTerm]);
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Products</CardTitle>
-          <CardDescription>Manage your product catalog.</CardDescription>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>
-                Fill in the details below to add a new product to your catalog.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Product Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Chicken Momo" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Appetizer" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Price (NPR)</FormLabel>
-                        <FormControl>
-                            <Input type="number" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="stockQty"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Stock Quantity</FormLabel>
-                        <FormControl>
-                            <Input type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
+    <>
+      <Card>
+        <CardHeader>
+           <TableToolbar
+            title="Products"
+            description="Manage your product catalog."
+            searchTerm={searchTerm}
+            onSearchTermChange={(term) => {
+              setSearchTerm(term);
+              setCurrentPage(1);
+            }}
+            searchPlaceholder="Search by product name or category..."
+            showDateFilter={false}
+          >
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Product</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below to add a new product to your catalog.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
                         control={form.control}
-                        name="popularityScore"
+                        name="name"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Popularity (1-10)</FormLabel>
+                            <FormLabel>Product Name</FormLabel>
                             <FormControl>
-                                <Input type="number" min="1" max="10" {...field} />
+                                <Input placeholder="e.g., Chicken Momo" {...field} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
                         )}
                         />
-                    <FormField
-                    control={form.control}
-                    name="spoilageRisk"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Spoilage Risk</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Category</FormLabel>
                             <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select risk level" />
-                            </SelectTrigger>
+                                <Input placeholder="e.g., Appetizer" {...field} />
                             </FormControl>
-                            <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="available"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>Available</FormLabel>
-                        <FormMessage />
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                            <FormMessage />
+                            </FormItem>
+                        )}
                         />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <Button type="submit">Add Product</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell>NPR {product.price.toFixed(2)}</TableCell>
-                <TableCell>{product.stockQty}</TableCell>
-                <TableCell>
-                  <Badge variant={product.available ? 'default' : 'destructive'} className={product.available ? 'bg-green-500' : ''}>
-                    {product.available ? 'Available' : 'Unavailable'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                       <Link href={`/pricing-assistant?productId=${product.id}`} passHref>
-                        <DropdownMenuItem>Suggest Price</DropdownMenuItem>
-                       </Link>
-                      <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Price (NPR)</FormLabel>
+                            <FormControl>
+                                <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={form.control}
+                        name="stockQty"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Stock Quantity</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="popularityScore"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Popularity (1-10)</FormLabel>
+                                <FormControl>
+                                    <Input type="number" min="1" max="10" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        <FormField
+                        control={form.control}
+                        name="spoilageRisk"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Spoilage Risk</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select risk level" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="available"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel>Available</FormLabel>
+                            <FormMessage />
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button type="submit">Add Product</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+           </TableToolbar>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Stock</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {paginatedProducts.length > 0 ? (
+                paginatedProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>NPR {product.price.toFixed(2)}</TableCell>
+                    <TableCell>{product.stockQty}</TableCell>
+                    <TableCell>
+                      <Badge variant={product.available ? 'default' : 'destructive'} className={product.available ? 'bg-green-500' : ''}>
+                        {product.available ? 'Available' : 'Unavailable'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                          <Link href={`/pricing-assistant?productId=${product.id}`} passHref>
+                            <DropdownMenuItem>Suggest Price</DropdownMenuItem>
+                          </Link>
+                          <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    No products found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter>
+            <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={filteredProducts.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                itemName="products"
+            />
+        </CardFooter>
+      </Card>
+    </>
   );
 }

@@ -17,9 +17,11 @@ interface TableToolbarProps {
   description: string;
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
-  dateFilter: string;
-  onDateFilterChange: (filter: string) => void;
+  dateFilter?: string;
+  onDateFilterChange?: (filter: string) => void;
   searchPlaceholder?: string;
+  children?: React.ReactNode;
+  showDateFilter?: boolean;
 }
 
 export function TableToolbar({
@@ -30,6 +32,8 @@ export function TableToolbar({
   dateFilter,
   onDateFilterChange,
   searchPlaceholder = "Search...",
+  children,
+  showDateFilter = true,
 }: TableToolbarProps) {
   return (
     <>
@@ -38,6 +42,7 @@ export function TableToolbar({
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
+        <div>{children}</div>
       </div>
       <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
         <div className="relative w-full sm:w-auto">
@@ -50,25 +55,27 @@ export function TableToolbar({
             onChange={(e) => onSearchTermChange(e.target.value)}
           />
         </div>
-        <Select
-          value={dateFilter}
-          onValueChange={(value) => {
-            if (value) {
-              onDateFilterChange(value);
-            }
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by date" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-            <SelectItem value="year">This Year</SelectItem>
-          </SelectContent>
-        </Select>
+        {showDateFilter && dateFilter && onDateFilterChange && (
+          <Select
+            value={dateFilter}
+            onValueChange={(value) => {
+              if (value) {
+                onDateFilterChange(value);
+              }
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </>
   );
