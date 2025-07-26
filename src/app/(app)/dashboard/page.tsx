@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   Card,
@@ -14,14 +17,14 @@ import {
 import { DollarSign, ClipboardList, Clock, MinusCircle } from 'lucide-react';
 import { mockOrders, mockExpenses } from "@/lib/mock-data";
 
-const chartData = [
-  { date: "Mon", sales: Math.floor(Math.random() * 2000) + 1000 },
-  { date: "Tue", sales: Math.floor(Math.random() * 2000) + 1000 },
-  { date: "Wed", sales: Math.floor(Math.random() * 2000) + 1000 },
-  { date: "Thu", sales: Math.floor(Math.random() * 2000) + 1000 },
-  { date: "Fri", sales: Math.floor(Math.random() * 2000) + 2000 },
-  { date: "Sat", sales: Math.floor(Math.random() * 2000) + 3000 },
-  { date: "Sun", sales: Math.floor(Math.random() * 2000) + 2500 },
+const initialChartData = [
+  { date: "Mon", sales: 0 },
+  { date: "Tue", sales: 0 },
+  { date: "Wed", sales: 0 },
+  { date: "Thu", sales: 0 },
+  { date: "Fri", sales: 0 },
+  { date: "Sat", sales: 0 },
+  { date: "Sun", sales: 0 },
 ]
 
 const chartConfig = {
@@ -32,6 +35,19 @@ const chartConfig = {
 }
 
 export default function DashboardPage() {
+  const [chartData, setChartData] = useState(initialChartData);
+
+  useEffect(() => {
+    setChartData([
+      { date: "Mon", sales: Math.floor(Math.random() * 2000) + 1000 },
+      { date: "Tue", sales: Math.floor(Math.random() * 2000) + 1000 },
+      { date: "Wed", sales: Math.floor(Math.random() * 2000) + 1000 },
+      { date: "Thu", sales: Math.floor(Math.random() * 2000) + 1000 },
+      { date: "Fri", sales: Math.floor(Math.random() * 2000) + 2000 },
+      { date: "Sat", sales: Math.floor(Math.random() * 2000) + 3000 },
+      { date: "Sun", sales: Math.floor(Math.random() * 2000) + 2500 },
+    ])
+  }, []);
 
   const totalRevenue = mockOrders.reduce((acc, order) => acc + order.totalPrice, 0);
   const todaysOrders = mockOrders.filter(order => new Date(order.createdAt).toDateString() === new Date().toDateString()).length;
