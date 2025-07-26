@@ -41,6 +41,14 @@ const navItems = [
   { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
 
+const mobileNavItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/orders', label: 'Orders', icon: ClipboardList },
+  { href: '/inventory', label: 'Inventory', icon: Warehouse },
+  { href: '/expenses', label: 'Expenses', icon: Banknote },
+  { href: '/profile', label: 'Profile', icon: UserIcon },
+];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
@@ -56,7 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <UserNav />
         </header>
         <main className="flex-1 overflow-auto p-4 pb-20 sm:p-6">{children}</main>
-        <MobileNav navItems={navItems} />
+        <MobileNav navItems={mobileNavItems} />
       </div>
     );
   }
