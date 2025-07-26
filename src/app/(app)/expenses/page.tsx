@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { mockExpenses as initialExpenses } from '@/lib/mock-data';
 import { format, isToday, isThisWeek, isThisMonth, isThisYear } from 'date-fns';
 import {
@@ -55,13 +55,8 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Expense } from '@/lib/types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { TableToolbar } from '@/components/ui/table-toolbar';
+import { TablePagination } from '@/components/ui/table-pagination';
 
 
 const expenseSchema = z.object({
@@ -130,64 +125,25 @@ export default function ExpensesPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                  <CardTitle>Expenses</CardTitle>
-                  <CardDescription>Track and manage your business expenses.</CardDescription>
-              </div>
-          </div>
-          <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search by category or description..."
-                  className="w-full rounded-lg bg-background pl-8 sm:w-[300px]"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-              <Select
-                value={dateFilter}
-                onValueChange={(value) => {
-                  if (value) {
-                    setDateFilter(value);
-                    setCurrentPage(1);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="year">This Year</SelectItem>
-                </SelectContent>
-              </Select>
-          </div>
+           <TableToolbar
+            title="Expenses"
+            description="Track and manage your business expenses."
+            searchTerm={searchTerm}
+            onSearchTermChange={(term) => {
+              setSearchTerm(term);
+              setCurrentPage(1);
+            }}
+            dateFilter={dateFilter}
+            onDateFilterChange={(filter) => {
+              setDateFilter(filter);
+              setCurrentPage(1);
+            }}
+            searchPlaceholder="Search by category or description..."
+          />
         </CardHeader>
         <CardContent>
           <Table>
@@ -224,34 +180,14 @@ export default function ExpensesPage() {
           </Table>
         </CardContent>
         <CardFooter>
-          <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-              <div>
-                  Showing{' '}
-                  <strong>
-                  {filteredExpenses.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}-
-                  {Math.min(currentPage * ITEMS_PER_PAGE, filteredExpenses.length)}
-                  </strong>{' '}
-                  of <strong>{filteredExpenses.length}</strong> expenses
-              </div>
-              <div className="flex items-center gap-2">
-                  <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviousPage}
-                      disabled={currentPage === 1}
-                  >
-                      Previous
-                  </Button>
-                  <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages}
-                  >
-                      Next
-                  </Button>
-              </div>
-          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredExpenses.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            itemName="expenses"
+          />
         </CardFooter>
       </Card>
       
