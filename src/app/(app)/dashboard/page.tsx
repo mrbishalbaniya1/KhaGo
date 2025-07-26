@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/chart"
 import { DollarSign, ClipboardList, Clock, MinusCircle } from 'lucide-react';
 import { mockOrders, mockExpenses } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const initialChartData = [
   { date: "Mon", sales: 0 },
@@ -36,8 +38,11 @@ const chartConfig = {
 
 export default function DashboardPage() {
   const [chartData, setChartData] = useState(initialChartData);
+  const [todaysOrders, setTodaysOrders] = useState(0);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     setChartData([
       { date: "Mon", sales: Math.floor(Math.random() * 2000) + 1000 },
       { date: "Tue", sales: Math.floor(Math.random() * 2000) + 1000 },
@@ -46,11 +51,12 @@ export default function DashboardPage() {
       { date: "Fri", sales: Math.floor(Math.random() * 2000) + 2000 },
       { date: "Sat", sales: Math.floor(Math.random() * 2000) + 3000 },
       { date: "Sun", sales: Math.floor(Math.random() * 2000) + 2500 },
-    ])
+    ]);
+    const today = new Date().toDateString();
+    setTodaysOrders(mockOrders.filter(order => new Date(order.createdAt).toDateString() === today).length);
   }, []);
 
   const totalRevenue = mockOrders.reduce((acc, order) => acc + order.totalPrice, 0);
-  const todaysOrders = mockOrders.filter(order => new Date(order.createdAt).toDateString() === new Date().toDateString()).length;
   const pendingOrders = mockOrders.filter(order => order.status === 'pending' || order.status === 'preparing').length;
   const totalExpenses = mockExpenses.reduce((acc, expense) => acc + expense.amount, 0);
   
@@ -77,10 +83,19 @@ export default function DashboardPage() {
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{todaysOrders}</div>
-            <p className="text-xs text-muted-foreground">
-              +180.1% from last month
-            </p>
+            {isClient ? (
+              <>
+                <div className="text-2xl font-bold">+{todaysOrders}</div>
+                <p className="text-xs text-muted-foreground">
+                  +180.1% from last month
+                </p>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-12" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
