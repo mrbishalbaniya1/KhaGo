@@ -21,11 +21,11 @@ import { format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 
 const statusStyles: { [key: string]: string } = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-800',
-  preparing: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-800',
-  ready: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-800',
-  delivered: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-200 dark:border-purple-800',
-  paid: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700',
+  pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  preparing: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  ready: 'bg-green-500/10 text-green-500 border-green-500/20',
+  delivered: 'bg-primary/10 text-primary border-primary/20',
+  paid: 'bg-gray-500/10 text-muted-foreground border-gray-500/20',
 };
 
 export default function OrdersPage() {
@@ -63,7 +63,7 @@ export default function OrdersPage() {
                         <Hash className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">Table {order.tableNumber}</span>
                     </div>
-                     <Badge variant="outline" className={`capitalize font-semibold ${statusStyles[order.status]}`}>
+                     <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
                         {order.status}
                     </Badge>
                 </div>
