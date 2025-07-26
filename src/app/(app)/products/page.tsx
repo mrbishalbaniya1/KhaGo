@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { mockProducts as initialProducts } from '@/lib/mock-data';
 import type { Product } from '@/lib/types';
@@ -44,6 +45,17 @@ import {
   DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -79,7 +91,9 @@ const ITEMS_PER_PAGE = 10;
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
@@ -97,7 +111,11 @@ export default function ProductsPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof productSchema>) => {
+  const editForm = useForm<z.infer<typeof productSchema>>({
+    resolver: zodResolver(productSchema),
+  });
+
+  const onAddSubmit = (values: z.infer<typeof productSchema>) => {
     const newProduct: Product = {
       id: `p${products.length + 1}`,
       ...values,
@@ -108,7 +126,37 @@ export default function ProductsPage() {
       description: `${values.name} has been added to the catalog.`,
     });
     form.reset();
-    setIsDialogOpen(false);
+    setIsAddDialogOpen(false);
+  };
+
+  const onEditSubmit = (values: z.infer<typeof productSchema>) => {
+    if (!selectedProduct) return;
+    setProducts(
+      products.map((p) =>
+        p.id === selectedProduct.id ? { ...p, ...values } : p
+      )
+    );
+    toast({
+      title: 'Product Updated',
+      description: `${values.name}'s information has been updated.`,
+    });
+    setIsEditDialogOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleEditClick = (product: Product) => {
+    setSelectedProduct(product);
+    editForm.reset(product);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    setProducts(products.filter((product) => product.id !== id));
+    toast({
+      title: 'Product Deleted',
+      description: 'The product has been removed from the catalog.',
+      variant: 'destructive',
+    });
   };
 
   const filteredProducts = useMemo(() => {
@@ -180,11 +228,34 @@ export default function ProductsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditClick(product)}>
+                            Edit
+                          </DropdownMenuItem>
                           <Link href={`/pricing-assistant?productId=${product.id}`} passHref>
                             <DropdownMenuItem>Suggest Price</DropdownMenuItem>
                           </Link>
-                          <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                           <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the product.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id)}>
+                                    Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -212,7 +283,8 @@ export default function ProductsPage() {
         </CardFooter>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Add Product Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
            <Button
             size="icon"
@@ -230,7 +302,7 @@ export default function ProductsPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                   <FormField
                   control={form.control}
@@ -347,6 +419,139 @@ export default function ProductsPage() {
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
                 <Button type="submit">Add Product</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+            <DialogDescription>
+              Update the product details below.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Product Name</FormLabel>
+                      <FormControl>
+                          <Input placeholder="e.g., Chicken Momo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+                  <FormField
+                  control={editForm.control}
+                  name="category"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <FormControl>
+                          <Input placeholder="e.g., Appetizer" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                  control={editForm.control}
+                  name="price"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Price (NPR)</FormLabel>
+                      <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+                  <FormField
+                  control={editForm.control}
+                  name="stockQty"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Stock Quantity</FormLabel>
+                      <FormControl>
+                          <Input type="number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                      control={editForm.control}
+                      name="popularityScore"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Popularity (1-10)</FormLabel>
+                          <FormControl>
+                              <Input type="number" min="1" max="10" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                      />
+                  <FormField
+                  control={editForm.control}
+                  name="spoilageRisk"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Spoilage Risk</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select risk level" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                  />
+              </div>
+              <FormField
+                control={editForm.control}
+                name="available"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Available</FormLabel>
+                      <FormMessage />
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit">Save Changes</Button>
               </DialogFooter>
             </form>
           </Form>
