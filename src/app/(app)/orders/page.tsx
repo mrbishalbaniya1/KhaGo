@@ -2,14 +2,13 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, ListOrdered, Clock, Hash, DollarSign } from 'lucide-react';
+import { MoreHorizontal, Clock, Hash, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
