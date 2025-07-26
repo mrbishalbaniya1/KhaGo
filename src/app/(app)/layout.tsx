@@ -70,7 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
            </Link>
           <UserNav />
         </header>
-        <main className="flex-1 overflow-auto p-4 pb-24 sm:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 pb-24">{children}</main>
         <MobileNav navItems={mobileNavItems} />
       </div>
     );
@@ -132,7 +132,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
           <UserNav />
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
