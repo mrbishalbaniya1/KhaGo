@@ -54,6 +54,30 @@ const inventoryData = mockProducts.map(p => ({
 const COLORS = ['#FF7F50', '#FFDB58', '#8884d8', '#82ca9d', '#ffc658'];
 
 export default function ReportsPage() {
+  const handleDownload = (data: any[], filename: string) => {
+    if (!data || data.length === 0) {
+        return;
+    }
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+        headers.join(','),
+        ...data.map(row => headers.map(header => row[header]).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+        URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   return (
     <div className="space-y-6">
        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -81,7 +105,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           </CardContent>
            <CardFooter>
-            <Button>
+            <Button onClick={() => handleDownload(salesData, 'monthly-sales-report')}>
               <Download className="mr-2 h-4 w-4" />
               Download Report
             </Button>
@@ -106,7 +130,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           </CardContent>
           <CardFooter>
-            <Button>
+            <Button onClick={() => handleDownload(expenseData, 'expenses-by-category-report')}>
               <Download className="mr-2 h-4 w-4" />
               Download Report
             </Button>
@@ -130,7 +154,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           </CardContent>
           <CardFooter>
-            <Button>
+            <Button onClick={() => handleDownload(inventoryData, 'inventory-stock-levels-report')}>
               <Download className="mr-2 h-4 w-4" />
               Download Report
             </Button>
