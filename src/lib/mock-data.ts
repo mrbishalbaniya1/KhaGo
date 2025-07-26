@@ -1,12 +1,35 @@
+
 import type { Product, Order, Expense, InventoryTransaction, User } from './types';
 
 export const mockUser: User = {
-  uid: '12345',
+  uid: 'user-1',
   name: 'Sita Sharma',
   email: 'sita.sharma@culinaryflow.np',
   role: 'admin',
   avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
+  lastSeen: 'Online',
 };
+
+export const mockUsers: User[] = [
+  mockUser,
+  {
+    uid: 'user-2',
+    name: 'Ram Karki',
+    email: 'ram.karki@culinaryflow.np',
+    role: 'employee',
+    avatar: 'https://i.pravatar.cc/150?u=a04258114e29026702d',
+    lastSeen: '2 hours ago',
+  },
+  {
+    uid: 'user-3',
+    name: 'Gita Thapa',
+    email: 'gita.thapa@culinaryflow.np',
+    role: 'employee',
+    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026707d',
+    lastSeen: '15 minutes ago',
+  },
+];
+
 
 export const mockProducts: Product[] = [
   { id: 'p1', name: 'Chicken Momo', price: 250, category: 'Momo', stockQty: 50, available: true, popularityScore: 10, spoilageRisk: 'high' },

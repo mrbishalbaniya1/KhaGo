@@ -23,6 +23,7 @@ import {
   Warehouse,
   Banknote,
   User as UserIcon,
+  Users,
   AreaChart,
   Package,
   Sparkles,
@@ -38,6 +39,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: Banknote },
   { href: '/reports', label: 'Reports', icon: AreaChart },
   { href: '/pricing-assistant', label: 'AI Pricing', icon: Sparkles },
+  { href: '/users', label: 'Users', icon: Users },
   { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
 

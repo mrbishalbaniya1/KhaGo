@@ -1,9 +1,11 @@
+
 export type User = {
   uid: string;
   name?: string;
   email: string;
   role: 'admin' | 'employee';
   avatar?: string;
+  lastSeen?: string;
 };
 
 export type Product = {
