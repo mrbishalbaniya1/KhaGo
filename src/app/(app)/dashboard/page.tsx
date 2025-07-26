@@ -9,10 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Clock, MinusCircle, Package, AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle } from 'lucide-react';
 import { mockOrders, mockExpenses, mockProducts } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Order, Product } from '@/lib/types';
+import type { Order } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,7 +97,7 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {isClient ? <StatCard title="Total Revenue" value={totalRevenue.toFixed(2)} icon={DollarSign} currency="NPR" description="+20.1% from last month" /> : <StatCardSkeleton />}
         {isClient ? <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} description="+19% from last month" /> : <StatCardSkeleton />}
@@ -105,7 +105,7 @@ export default function DashboardPage() {
         {isClient ? <StatCard title="Low Stock Items" value={lowStockItems} icon={AlertTriangle} description="Items needing attention" /> : <StatCardSkeleton />}
       </div>
       
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>

@@ -133,7 +133,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <UserNav />
         </header>
         <main className="flex-1 overflow-auto">
-            <div className="p-4 sm:p-6">
+            <div className="p-4">
                 {children}
             </div>
         </main>
