@@ -23,6 +23,7 @@ import {
   Warehouse,
   Banknote,
   User as UserIcon,
+  AreaChart,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
@@ -32,6 +33,7 @@ const navItems = [
   { href: '/orders', label: 'Orders', icon: ClipboardList },
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
+  { href: '/reports', label: 'Reports', icon: AreaChart },
   { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
 
@@ -42,10 +44,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
            <Link href="/dashboard" className="flex items-center gap-2">
-             <Icons.logo className="h-7 w-7 text-primary" />
-             <span className="font-headline text-lg font-semibold tracking-tight">CulinaryFlow</span>
+             <Icons.logo className="h-8 w-8 text-primary" />
+             <span className="font-headline text-xl font-bold tracking-tight">CulinaryFlow</span>
            </Link>
           <UserNav />
         </header>
@@ -59,12 +61,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-10 w-10 text-primary">
-              <Icons.logo className="h-7 w-7" />
+          <div className="flex items-center gap-2.5">
+            <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
+              <Icons.logo className="h-8 w-8" />
             </Button>
             <div className="flex flex-col">
-              <h2 className="font-headline text-lg font-semibold tracking-tight">
+              <h2 className="font-headline text-xl font-bold tracking-tight">
                 CulinaryFlow
               </h2>
             </div>
@@ -90,7 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
           <SidebarTrigger />
           <UserNav />
         </header>
