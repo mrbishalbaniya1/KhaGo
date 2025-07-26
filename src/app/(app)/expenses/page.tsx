@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -57,6 +57,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Expense } from '@/lib/types';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const expenseSchema = z.object({
@@ -75,6 +76,11 @@ export default function ExpensesPage() {
   const [dateFilter, setDateFilter] = useState('week');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -124,6 +130,17 @@ export default function ExpensesPage() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+  
+  const TableSkeleton = () => (
+    [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+      <TableRow key={i}>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+        <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+      </TableRow>
+    ))
+  );
 
   return (
     <>
@@ -156,25 +173,29 @@ export default function ExpensesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedExpenses.length > 0 ? (
-                  paginatedExpenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                          <TableCell>{format(expense.date, 'MMM d, yyyy')}</TableCell>
-                          <TableCell className="font-medium">
-                          {expense.category}
-                          </TableCell>
-                          <TableCell>{expense.description}</TableCell>
-                          <TableCell className="text-right">
-                          NPR {expense.amount.toFixed(2)}
+              {isClient ? (
+                  paginatedExpenses.length > 0 ? (
+                      paginatedExpenses.map((expense) => (
+                          <TableRow key={expense.id}>
+                              <TableCell>{format(expense.date, 'MMM d, yyyy')}</TableCell>
+                              <TableCell className="font-medium">
+                              {expense.category}
+                              </TableCell>
+                              <TableCell>{expense.description}</TableCell>
+                              <TableCell className="text-right">
+                              NPR {expense.amount.toFixed(2)}
+                              </TableCell>
+                          </TableRow>
+                      ))
+                  ) : (
+                      <TableRow>
+                          <TableCell colSpan={4} className="text-center">
+                              No expenses found.
                           </TableCell>
                       </TableRow>
-                  ))
+                  )
               ) : (
-                  <TableRow>
-                      <TableCell colSpan={4} className="text-center">
-                          No expenses found.
-                      </TableCell>
-                  </TableRow>
+                <TableSkeleton />
               )}
             </TableBody>
           </Table>

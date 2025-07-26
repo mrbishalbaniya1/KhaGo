@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -25,14 +26,15 @@ import {
   Cell,
 } from 'recharts';
 import { mockOrders, mockExpenses, mockProducts } from '@/lib/mock-data';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const salesData = [
-    { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Feb', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Apr', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'May', total: Math.floor(Math.random() * 5000) + 2000 },
-    { name: 'Jun', total: Math.floor(Math.random() * 5000) + 1500 },
+    { name: 'Jan', total: 1000 + Math.random() * 4000 },
+    { name: 'Feb', total: 1000 + Math.random() * 4000 },
+    { name: 'Mar', total: 1000 + Math.random() * 4000 },
+    { name: 'Apr', total: 1000 + Math.random() * 4000 },
+    { name: 'May', total: 2000 + Math.random() * 3000 },
+    { name: 'Jun', total: 1500 + Math.random() * 3500 },
 ];
 
 const expenseData = mockExpenses
@@ -54,6 +56,12 @@ const inventoryData = mockProducts.map(p => ({
 const COLORS = ['#FF7F50', '#FFDB58', '#8884d8', '#82ca9d', '#ffc658'];
 
 export default function ReportsPage() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const handleDownload = (data: any[], filename: string) => {
     if (!data || data.length === 0) {
         return;
@@ -76,6 +84,8 @@ export default function ReportsPage() {
     link.click();
     document.body.removeChild(link);
   };
+  
+  const ChartSkeleton = () => <Skeleton className="w-full h-[350px]" />;
 
 
   return (
@@ -93,16 +103,20 @@ export default function ReportsPage() {
             <CardDescription>A summary of sales for the last 6 months.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis unit="k" tickFormatter={(value) => `${(value / 1000).toFixed(0)}`} />
-                <Tooltip formatter={(value) => `NPR ${value.toLocaleString()}`} />
-                <Legend />
-                <Bar dataKey="total" fill="hsl(var(--primary))" name="Sales (in NPR)" />
-              </BarChart>
-            </ResponsiveContainer>
+            {isClient ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={salesData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis unit="k" tickFormatter={(value) => `${(value / 1000).toFixed(0)}`} />
+                    <Tooltip formatter={(value: number) => `NPR ${value.toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="total" fill="hsl(var(--primary))" name="Sales (in NPR)" />
+                  </BarChart>
+                </ResponsiveContainer>
+             ) : (
+              <ChartSkeleton />
+            )}
           </CardContent>
            <CardFooter>
             <Button onClick={() => handleDownload(salesData, 'monthly-sales-report')}>
@@ -117,17 +131,21 @@ export default function ReportsPage() {
             <CardDescription>A breakdown of your business expenses.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px] flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-               <PieChart>
-                 <Pie data={expenseData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                    {expenseData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                 </Pie>
-                 <Tooltip formatter={(value) => `NPR ${value.toLocaleString()}`} />
-                 <Legend />
-               </PieChart>
-            </ResponsiveContainer>
+            {isClient ? (
+              <ResponsiveContainer width="100%" height="100%">
+                 <PieChart>
+                   <Pie data={expenseData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
+                      {expenseData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                   </Pie>
+                   <Tooltip formatter={(value: number) => `NPR ${value.toLocaleString()}`} />
+                   <Legend />
+                 </PieChart>
+              </ResponsiveContainer>
+            ) : (
+                <ChartSkeleton />
+            )}
           </CardContent>
           <CardFooter>
             <Button onClick={() => handleDownload(expenseData, 'expenses-by-category-report')}>
@@ -142,16 +160,20 @@ export default function ReportsPage() {
             <CardDescription>Current stock levels for all products.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={inventoryData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="stock" fill="hsl(var(--primary))" name="Stock Quantity" />
-              </BarChart>
-            </ResponsiveContainer>
+             {isClient ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={inventoryData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="stock" fill="hsl(var(--primary))" name="Stock Quantity" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+                <ChartSkeleton />
+            )}
           </CardContent>
           <CardFooter>
             <Button onClick={() => handleDownload(inventoryData, 'inventory-stock-levels-report')}>

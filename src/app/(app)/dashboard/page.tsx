@@ -71,6 +71,30 @@ export default function DashboardPage() {
       </CardContent>
     </Card>
   )
+  
+  const RecentOrdersSkeleton = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Order</TableHead>
+          <TableHead>Table</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Total</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {[...Array(5)].map((_, i) => (
+          <TableRow key={i}>
+            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+            <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+            <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,30 +117,32 @@ export default function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Table</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {recentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                        <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
-                        <TableCell>{order.tableNumber}</TableCell>
-                        <TableCell>
-                            <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
-                                {order.status}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">NPR {order.totalPrice.toFixed(2)}</TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+            {!isClient ? <RecentOrdersSkeleton /> : (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Order</TableHead>
+                        <TableHead>Table</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {recentOrders.map((order) => (
+                        <TableRow key={order.id}>
+                            <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
+                            <TableCell>{order.tableNumber}</TableCell>
+                            <TableCell>
+                                <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
+                                    {order.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">NPR {order.totalPrice.toFixed(2)}</TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            )}
           </CardContent>
         </Card>
         <Card>

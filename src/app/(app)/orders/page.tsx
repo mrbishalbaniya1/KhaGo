@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -56,6 +57,11 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders
@@ -76,6 +82,20 @@ export default function OrdersPage() {
   const paginatedOrders = filteredOrders.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
+  );
+
+  const TableSkeleton = () => (
+    [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+      <TableRow key={i}>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+      </TableRow>
+    ))
   );
 
   return (
@@ -121,45 +141,47 @@ export default function OrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedOrders.length > 0 ? (
-                paginatedOrders.map((order) => (
-                    <TableRow key={order.id}>
-                        <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
-                        <TableCell>{order.tableNumber}</TableCell>
-                        <TableCell>
-                            <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
-                                {order.status}
-                            </Badge>
-                        </TableCell>
-                         <TableCell>
-                            {order.products.map(p => p.name).join(', ')}
-                         </TableCell>
-                        <TableCell>{format(order.createdAt, 'MMM d, yyyy p')}</TableCell>
-                        <TableCell className="text-right font-medium">NPR {order.totalPrice.toFixed(2)}</TableCell>
-                        <TableCell>
-                           <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Toggle menu</span>
-                                </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem>Update Status</DropdownMenuItem>
-                                <DropdownMenuItem>Print Receipt</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                ))
-            ) : (
-                <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                        No orders found.
-                    </TableCell>
-                </TableRow>
-            )}
+            {isClient ? (
+              paginatedOrders.length > 0 ? (
+                  paginatedOrders.map((order) => (
+                      <TableRow key={order.id}>
+                          <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
+                          <TableCell>{order.tableNumber}</TableCell>
+                          <TableCell>
+                              <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
+                                  {order.status}
+                              </Badge>
+                          </TableCell>
+                           <TableCell>
+                              {order.products.map(p => p.name).join(', ')}
+                           </TableCell>
+                          <TableCell>{format(order.createdAt, 'MMM d, yyyy p')}</TableCell>
+                          <TableCell className="text-right font-medium">NPR {order.totalPrice.toFixed(2)}</TableCell>
+                          <TableCell>
+                             <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                  <Button aria-haspopup="true" size="icon" variant="ghost">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Toggle menu</span>
+                                  </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem>Update Status</DropdownMenuItem>
+                                  <DropdownMenuItem>Print Receipt</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                              </DropdownMenu>
+                          </TableCell>
+                      </TableRow>
+                  ))
+              ) : (
+                  <TableRow>
+                      <TableCell colSpan={7} className="text-center">
+                          No orders found.
+                      </TableCell>
+                  </TableRow>
+              )
+            ) : <TableSkeleton />}
           </TableBody>
         </Table>
       </CardContent>

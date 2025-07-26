@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,6 +56,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { InventoryTransaction } from '@/lib/types';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const transactionSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -72,6 +73,11 @@ export default function InventoryPage() {
   const [dateFilter, setDateFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -126,6 +132,17 @@ export default function InventoryPage() {
     currentPage * ITEMS_PER_PAGE
   );
   
+  const TableSkeleton = () => (
+    [...Array(ITEMS_PER_PAGE)].map((_, i) => (
+      <TableRow key={i}>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
+        <TableCell className="text-right"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+      </TableRow>
+    ))
+  );
+
   return (
     <>
       <Card>
@@ -157,25 +174,29 @@ export default function InventoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedTransactions.length > 0 ? (
-                paginatedTransactions.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell>{format(tx.date, 'MMM d, yyyy p')}</TableCell>
-                    <TableCell className="font-medium">{tx.productName}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">{tx.reason.replace('-', ' ')}</Badge>
-                    </TableCell>
-                    <TableCell className={`text-right font-medium ${tx.qtyChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {tx.qtyChange > 0 ? `+${tx.qtyChange}` : tx.qtyChange}
+              {isClient ? (
+                paginatedTransactions.length > 0 ? (
+                  paginatedTransactions.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell>{format(tx.date, 'MMM d, yyyy p')}</TableCell>
+                      <TableCell className="font-medium">{tx.productName}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">{tx.reason.replace('-', ' ')}</Badge>
+                      </TableCell>
+                      <TableCell className={`text-right font-medium ${tx.qtyChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {tx.qtyChange > 0 ? `+${tx.qtyChange}` : tx.qtyChange}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                      No transactions found.
                     </TableCell>
                   </TableRow>
-                ))
+                )
               ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    No transactions found.
-                  </TableCell>
-                </TableRow>
+                <TableSkeleton />
               )}
             </TableBody>
           </Table>
