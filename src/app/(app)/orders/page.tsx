@@ -67,6 +67,7 @@ import {
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -396,175 +397,177 @@ export default function OrdersPage() {
             <span className="sr-only">Create Order</span>
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Create New Order</DialogTitle>
-            <DialogDescription>
-              Select products, customer details, and any discounts to create a new order.
-            </DialogDescription>
-          </DialogHeader>
-           <Form {...addOrderForm}>
-              <form onSubmit={addOrderForm.handleSubmit(onAddOrderSubmit)}>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={addOrderForm.control}
-                            name="tableNumber"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Table Number (Optional)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" placeholder="e.g., 5" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={addOrderForm.control}
-                            name="customerName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Customer Name (Optional)</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g., Jane Doe" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                      </div>
-                      
-                      <div>
-                          <Label>Products</Label>
-                          <div className="space-y-2 mt-2">
-                          {fields.map((field, index) => (
-                              <div key={field.id} className="flex items-start gap-2">
-                                  <FormField
-                                      control={addOrderForm.control}
-                                      name={`products.${index}.productId`}
-                                      render={({ field: formField }) => (
-                                          <FormItem className="flex-1">
-                                              <Select onValueChange={(value) => {
-                                                  const product = mockProducts.find(p => p.id === value);
-                                                  formField.onChange(value);
-                                                  addOrderForm.setValue(`products.${index}.price`, product?.price || 0);
-                                              }} defaultValue={formField.value}>
-                                                  <FormControl>
-                                                      <SelectTrigger>
-                                                          <SelectValue placeholder="Select a product" />
-                                                      </SelectTrigger>
-                                                  </FormControl>
-                                                  <SelectContent>
-                                                      {mockProducts.filter(p => p.available).map((product: Product) => (
-                                                          <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-                                                      ))}
-                                                  </SelectContent>
-                                              </Select>
-                                              <FormMessage />
-                                          </FormItem>
-                                      )}
-                                  />
-                                  <FormField
-                                      control={addOrderForm.control}
-                                      name={`products.${index}.qty`}
-                                      render={({ field }) => (
-                                          <FormItem>
-                                              <FormControl>
-                                                  <Input type="number" placeholder="Qty" className="w-20" {...field} min={1}/>
-                                              </FormControl>
-                                              <FormMessage />
-                                          </FormItem>
-                                      )}
-                                  />
-                                  <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <=1}>
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                              </div>
-                          ))}
-                          </div>
-                          <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="mt-2"
-                              onClick={() => append({ productId: '', qty: 1, price: 0 })}
-                          >
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add Product
-                          </Button>
-                      </div>
-
-                       <div className="space-y-4">
-                        <FormField
-                          control={addOrderForm.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Notes</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder="e.g., extra spicy, no onions" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+        <DialogContent className="max-w-4xl h-full sm:h-auto">
+           <ScrollArea className="h-full">
+                <DialogHeader className="p-6">
+                    <DialogTitle>Create New Order</DialogTitle>
+                    <DialogDescription>
+                    Select products, customer details, and any discounts to create a new order.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...addOrderForm}>
+                    <form onSubmit={addOrderForm.handleSubmit(onAddOrderSubmit)} className="px-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                           <FormField
-                            control={addOrderForm.control}
-                            name="discount"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Discount (NPR)</FormLabel>
-                                <FormControl>
-                                  <Input type="number" placeholder="0.00" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={addOrderForm.control}
-                            name="tip"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Tip (NPR)</FormLabel>
-                                <FormControl>
-                                  <Input type="number" placeholder="0.00" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            <FormField
+                                control={addOrderForm.control}
+                                name="tableNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Table Number (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="e.g., 5" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={addOrderForm.control}
+                                name="customerName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Customer Name (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Jane Doe" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Quick Menu</Label>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                          {quickMenuItems.map(item => (
-                            <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item)}>
-                              <div className="p-1 text-center">
-                                  <span className="block text-sm font-medium">{item.name}</span>
-                                  <span className="block text-xs text-muted-foreground">NPR {item.price}</span>
-                              </div>
+                        
+                        <div>
+                            <Label>Products</Label>
+                            <div className="space-y-2 mt-2">
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="flex items-start gap-2">
+                                    <FormField
+                                        control={addOrderForm.control}
+                                        name={`products.${index}.productId`}
+                                        render={({ field: formField }) => (
+                                            <FormItem className="flex-1">
+                                                <Select onValueChange={(value) => {
+                                                    const product = mockProducts.find(p => p.id === value);
+                                                    formField.onChange(value);
+                                                    addOrderForm.setValue(`products.${index}.price`, product?.price || 0);
+                                                }} defaultValue={formField.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a product" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {mockProducts.filter(p => p.available).map((product: Product) => (
+                                                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={addOrderForm.control}
+                                        name={`products.${index}.qty`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input type="number" placeholder="Qty" className="w-20" {...field} min={1}/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <=1}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => append({ productId: '', qty: 1, price: 0 })}
+                            >
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                             </Button>
-                          ))}
                         </div>
-                      </div>
-                      <WatchedForm />
-                    </div>
-                 </div>
 
-                  <DialogFooter className="mt-8">
-                      <DialogClose asChild>
-                          <Button variant="outline" onClick={() => addOrderForm.reset()}>Cancel</Button>
-                      </DialogClose>
-                      <Button type="submit">Create Order</Button>
-                  </DialogFooter>
-              </form>
-          </Form>
+                        <div className="space-y-4">
+                            <FormField
+                            control={addOrderForm.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Notes</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="e.g., extra spicy, no onions" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={addOrderForm.control}
+                                name="discount"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Discount (NPR)</FormLabel>
+                                    <FormControl>
+                                    <Input type="number" placeholder="0.00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={addOrderForm.control}
+                                name="tip"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Tip (NPR)</FormLabel>
+                                    <FormControl>
+                                    <Input type="number" placeholder="0.00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            </div>
+                        </div>
+                        </div>
+                        <div className="space-y-4">
+                        <div>
+                            <Label>Quick Menu</Label>
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                            {quickMenuItems.map(item => (
+                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item)}>
+                                <div className="p-1 text-center">
+                                    <span className="block text-sm font-medium">{item.name}</span>
+                                    <span className="block text-xs text-muted-foreground">NPR {item.price}</span>
+                                </div>
+                                </Button>
+                            ))}
+                            </div>
+                        </div>
+                        <WatchedForm />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="mt-8 p-6 sticky bottom-0 bg-background">
+                        <DialogClose asChild>
+                            <Button variant="outline" onClick={() => addOrderForm.reset()}>Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit">Create Order</Button>
+                    </DialogFooter>
+                    </form>
+                </Form>
+           </ScrollArea>
         </DialogContent>
       </Dialog>
 
