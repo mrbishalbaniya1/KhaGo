@@ -381,11 +381,11 @@ export default function OrdersPage() {
   };
   
   const ProductAutocomplete = ({form, index, field, formType = 'add'}: {form: any, index: number, field: any, formType?: 'add' | 'edit'}) => {
-    const productName = useWatch({control: form.control, name: `products.${index}.name`});
-    const filteredProducts = mockProducts.filter(p => p.name.toLowerCase().includes(productName?.toLowerCase() || ''));
-    
+    const productName = field.value || '';
+    const filteredProducts = mockProducts.filter(p => p.name.toLowerCase().includes(productName.toLowerCase()));
+
     return (
-       <Popover open={suggestionIndex === index} onOpenChange={(isOpen) => !isOpen && setSuggestionIndex(null)}>
+      <Popover open={suggestionIndex === index} onOpenChange={(isOpen) => !isOpen && setSuggestionIndex(null)}>
         <PopoverAnchor>
           <FormControl>
             <Input
@@ -414,6 +414,9 @@ export default function OrdersPage() {
                       const watchedProducts = form.getValues('products');
                       updateFn(index, { ...watchedProducts[index], name: product.name, price: product.price });
                       setSuggestionIndex(null);
+                      // Manually blur the input to close the popover
+                      const input = document.activeElement as HTMLElement;
+                      if (input) input.blur();
                     }}
                   >
                     {product.name}
