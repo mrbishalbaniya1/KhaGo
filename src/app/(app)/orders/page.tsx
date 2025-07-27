@@ -406,8 +406,10 @@ export default function OrdersPage() {
         const [popoverOpen, setPopoverOpen] = useState(false);
       
         const filteredProducts = useMemo(() => {
-          if (!field.value) return mockProducts;
-          return mockProducts.filter(p => p.name.toLowerCase().includes(field.value.toLowerCase()));
+          if (!field.value?.name && typeof field.value !== 'string') return mockProducts;
+          const currentName = typeof field.value === 'string' ? field.value : field.value.name;
+          if (!currentName) return mockProducts;
+          return mockProducts.filter(p => p.name.toLowerCase().includes(currentName.toLowerCase()));
         }, [field.value]);
       
         const handleSelect = (product: Product) => {
