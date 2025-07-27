@@ -35,9 +35,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogTrigger,
 } from '@/components/ui/dialog';
-import { mockOrders as initialOrders } from '@/lib/mock-data';
+import { mockOrders as initialOrders, mockProducts } from '@/lib/mock-data';
 import type { Order } from '@/lib/types';
 import { format } from 'date-fns';
 import { TableToolbar } from '@/components/ui/table-toolbar';
@@ -52,6 +53,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -73,6 +75,7 @@ export default function OrdersPage() {
   const { toast } = useToast();
 
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
+  const [isAddOrderDialogOpen, setIsAddOrderDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
 
@@ -229,6 +232,43 @@ export default function OrdersPage() {
             />
           </CardFooter>
       </Card>
+      
+      <Dialog open={isAddOrderDialogOpen} onOpenChange={setIsAddOrderDialogOpen}>
+        <DialogTrigger asChild>
+          <Button
+            size="icon"
+            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
+          >
+            <PlusCircle className="h-8 w-8" />
+            <span className="sr-only">Create Order</span>
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Order</DialogTitle>
+            <DialogDescription>
+              Select products and table number to create a new order.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+             <div>
+              <Label htmlFor="tableNumber">Table Number</Label>
+              <Input id="tableNumber" type="number" placeholder="e.g. 5" className="mt-2" />
+            </div>
+            <div>
+              <Label>Products</Label>
+              <p className="text-sm text-muted-foreground">Product selection UI coming soon.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={() => setIsAddOrderDialogOpen(false)}>Create Order</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={isUpdateStatusDialogOpen} onOpenChange={setIsUpdateStatusDialogOpen}>
         <DialogContent>
