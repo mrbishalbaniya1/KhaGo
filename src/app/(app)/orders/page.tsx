@@ -1256,7 +1256,7 @@ export default function OrdersPage() {
       </Dialog>
       
        <Dialog open={isUpdatePaymentDialogOpen} onOpenChange={setIsUpdatePaymentDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Payment Details</DialogTitle>
             <DialogDescription>
@@ -1265,42 +1265,40 @@ export default function OrdersPage() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div>
-                <Label htmlFor="payment-method">Payment Method</Label>
-                <Select 
-                    value={paymentDetails.method} 
-                    onValueChange={(value: Order['paymentMethod']) => {
-                        let newStatus = paymentDetails.status;
-                        if (value === 'cash' || value === 'online') {
-                            newStatus = 'paid';
-                        }
-                        setPaymentDetails({method: value, status: newStatus})
-                    }}
-                >
-                    <SelectTrigger id="payment-method" className="w-full mt-2">
-                        <SelectValue placeholder="Select a method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {paymentMethods.map(method => (
-                        <SelectItem key={method} value={method} className="capitalize">{method}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Label>Payment Method</Label>
+                 <div className="grid grid-cols-3 gap-2 mt-2">
+                    {paymentMethods.map(method => (
+                        <Button 
+                            key={method} 
+                            variant={paymentDetails.method === method ? 'default' : 'outline'}
+                            onClick={() => {
+                                let newStatus = paymentDetails.status;
+                                if (method === 'cash' || method === 'online') {
+                                    newStatus = 'paid';
+                                }
+                                setPaymentDetails({method: method, status: newStatus})
+                            }}
+                            className="capitalize w-full"
+                        >
+                            {method}
+                        </Button>
+                    ))}
+                </div>
             </div>
              <div>
-                <Label htmlFor="payment-status">Payment Status</Label>
-                <Select 
-                    value={paymentDetails.status} 
-                    onValueChange={(value: Order['paymentStatus']) => setPaymentDetails(prev => ({...prev, status: value}))}
-                >
-                    <SelectTrigger id="payment-status" className="w-full mt-2">
-                        <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {paymentStatuses.map(status => (
-                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Label>Payment Status</Label>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                    {paymentStatuses.map(status => (
+                        <Button 
+                            key={status} 
+                            variant={paymentDetails.status === status ? 'default' : 'outline'}
+                             onClick={() => setPaymentDetails(prev => ({...prev, status: status}))}
+                            className="capitalize w-full"
+                        >
+                            {status}
+                        </Button>
+                    ))}
+                </div>
             </div>
           </div>
           <DialogFooter>
