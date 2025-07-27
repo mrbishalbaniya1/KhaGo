@@ -107,7 +107,7 @@ const orderProductSchema = z.object({
     name: z.string().min(1, 'Product name is required.'),
     qty: z.coerce.number().min(1, 'Quantity must be at least 1.'),
     price: z.coerce.number().nonnegative('Price must be a positive number.'),
-    productId: z.string().optional(), // Keep it optional for custom items
+    productId: z.string().optional(),
 });
 
 
@@ -402,61 +402,6 @@ export default function OrdersPage() {
     );
   };
   
-    const ProductAutocomplete = ({ form, index, field }: { form: typeof addOrderForm | typeof baseOrderForm, index: number, field: any }) => {
-        const [popoverOpen, setPopoverOpen] = useState(false);
-      
-        const filteredProducts = useMemo(() => {
-          const currentName = field.value || '';
-          if (!currentName) return mockProducts;
-          return mockProducts.filter(p => p.name.toLowerCase().includes(currentName.toLowerCase()));
-        }, [field.value]);
-      
-        const handleSelect = (product: Product) => {
-          form.setValue(`products.${index}.name`, product.name);
-          form.setValue(`products.${index}.price`, product.price);
-          form.setValue(`products.${index}.productId`, product.id);
-          setPopoverOpen(false);
-        };
-      
-        return (
-          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-            <PopoverTrigger asChild>
-                <FormControl>
-                     <Input
-                        placeholder="Product Name"
-                        {...field}
-                        onChange={(e) => {
-                            field.onChange(e.target.value);
-                            if (!popoverOpen) setPopoverOpen(true);
-                        }}
-                        />
-                </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="start">
-              <Command>
-                <CommandInput 
-                    placeholder="Search product..."
-                 />
-                <CommandList>
-                  <CommandEmpty>No product found. You can add a custom one.</CommandEmpty>
-                  <CommandGroup>
-                    {filteredProducts.map((p) => (
-                      <CommandItem
-                        key={p.id}
-                        value={p.name}
-                        onSelect={() => handleSelect(p)}
-                      >
-                        {p.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        );
-      };
-
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
       <TableRow key={i}>
@@ -671,7 +616,9 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <ProductAutocomplete form={addOrderForm} index={index} field={field} />
+                                                     <FormControl>
+                                                        <Input placeholder="Product Name" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -892,7 +839,9 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                     <ProductAutocomplete form={baseOrderForm} index={index} field={field} />
+                                                     <FormControl>
+                                                        <Input placeholder="Product Name" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
