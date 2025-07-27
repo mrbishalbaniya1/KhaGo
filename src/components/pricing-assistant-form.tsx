@@ -1,11 +1,10 @@
 
 'use client';
 
-import { use, useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSearchParams } from 'next/navigation';
 
 import { suggestProductPricing, type SuggestProductPricingOutput } from '@/ai/flows/suggest-product-pricing';
 import { Button } from '@/components/ui/button';
@@ -29,9 +28,11 @@ const formSchema = z.object({
 
 type PricingFormValues = z.infer<typeof formSchema>;
 
-export function PricingAssistantForm() {
-  const searchParams = useSearchParams();
-  const productId = searchParams.get('productId');
+interface PricingAssistantFormProps {
+    productId?: string;
+}
+
+export function PricingAssistantForm({ productId }: PricingAssistantFormProps) {
   const { toast } = useToast();
   
   const [isPending, startTransition] = useTransition();

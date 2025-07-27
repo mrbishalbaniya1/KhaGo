@@ -30,7 +30,13 @@ function PricingAssistantFormSkeleton() {
     )
 }
 
-export default function PricingAssistantPage() {
+export default function PricingAssistantPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const productId = searchParams?.productId as string | undefined;
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -42,7 +48,7 @@ export default function PricingAssistantPage() {
       </CardHeader>
       <CardContent>
         <Suspense fallback={<PricingAssistantFormSkeleton />}>
-          <PricingAssistantForm />
+          <PricingAssistantForm productId={productId} />
         </Suspense>
       </CardContent>
     </Card>
