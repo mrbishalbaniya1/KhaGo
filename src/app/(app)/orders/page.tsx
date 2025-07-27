@@ -103,7 +103,7 @@ const paymentStatusStyles: { [key: string]: string } = {
 
 const ITEMS_PER_PAGE = 10;
 const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered'];
-const paymentMethods: Order['paymentMethod'][] = ['cash', 'online', 'pending'];
+const paymentMethods: Exclude<Order['paymentMethod'], undefined>[] = ['cash', 'online', 'pending'];
 const paymentStatuses: Order['paymentStatus'][] = ['pending', 'paid', 'refunded'];
 
 const orderProductSchema = z.object({
@@ -155,9 +155,11 @@ export default function OrdersPage() {
   const [isEditOrderDialogOpen, setIsEditOrderDialogOpen] = useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
   const [isViewOrderDialogOpen, setIsViewOrderDialogOpen] = useState(false);
+  const [isUpdatePaymentDialogOpen, setIsUpdatePaymentDialogOpen] = useState(false);
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
+  const [paymentDetails, setPaymentDetails] = useState<{method: Order['paymentMethod'], status: Order['paymentStatus']}>({method: 'pending', status: 'pending'});
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -243,6 +245,12 @@ export default function OrdersPage() {
     const discount = Number(values.discount || 0);
     const tip = Number(values.tip || 0);
     const totalPrice = subtotal - discount + tip;
+    
+    let paymentStatus = values.paymentStatus;
+    if (values.paymentMethod === 'cash' || values.paymentMethod === 'online') {
+        paymentStatus = 'paid';
+    }
+
 
     const newOrder: Order = {
         id: `o${orders.length + 1}`,
@@ -258,7 +266,7 @@ export default function OrdersPage() {
         status: 'pending',
         createdAt: new Date(),
         paymentMethod: values.paymentMethod,
-        paymentStatus: values.paymentStatus,
+        paymentStatus: paymentStatus,
     };
 
     setOrders([newOrder, ...orders]);
@@ -296,6 +304,11 @@ export default function OrdersPage() {
     const discount = Number(values.discount || 0);
     const tip = Number(values.tip || 0);
     const totalPrice = subtotal - discount + tip;
+
+     let paymentStatus = values.paymentStatus;
+    if (values.paymentMethod === 'cash' || values.paymentMethod === 'online') {
+        paymentStatus = 'paid';
+    }
     
     setOrders(orders.map(o => o.id === selectedOrder.id ? { 
         ...o, 
@@ -306,6 +319,8 @@ export default function OrdersPage() {
         discount: Number(values.discount || 0),
         tip: Number(values.tip || 0),
         products: updatedProducts,
+        paymentMethod: values.paymentMethod,
+        paymentStatus: paymentStatus,
         subtotal,
         totalPrice,
      } : o));
@@ -349,6 +364,12 @@ export default function OrdersPage() {
     setIsUpdateStatusDialogOpen(true);
   };
   
+  const handleUpdatePaymentClick = (order: Order) => {
+    setSelectedOrder(order);
+    setPaymentDetails({method: order.paymentMethod, status: order.paymentStatus});
+    setIsUpdatePaymentDialogOpen(true);
+  }
+  
   const handleViewClick = (order: Order) => {
     setSelectedOrder(order);
     setIsViewOrderDialogOpen(true);
@@ -364,6 +385,21 @@ export default function OrdersPage() {
     setIsUpdateStatusDialogOpen(false);
     setSelectedOrder(null);
   }
+
+  const handleUpdatePayment = () => {
+    if (!selectedOrder) return;
+     let status = paymentDetails.status;
+    if (paymentDetails.method === 'cash' || paymentDetails.method === 'online') {
+      status = 'paid';
+    }
+    setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, paymentMethod: paymentDetails.method, paymentStatus: status } : o));
+    toast({
+      title: 'Payment Updated',
+      description: `Payment details for order #${selectedOrder.tokenNumber} have been updated.`,
+    });
+    setIsUpdatePaymentDialogOpen(false);
+    setSelectedOrder(null);
+  }
   
   const handleEditClick = (order: Order) => {
     setSelectedOrder(order);
@@ -374,7 +410,9 @@ export default function OrdersPage() {
         notes: order.notes || '',
         discount: order.discount || '',
         tip: order.tip || '',
-        products: order.products.map(p => ({ name: p.name, qty: p.qty, price: p.price, productId: p.productId }))
+        products: order.products.map(p => ({ name: p.name, qty: p.qty, price: p.price, productId: p.productId })),
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
     });
     setIsEditOrderDialogOpen(true);
   }
@@ -528,11 +566,17 @@ export default function OrdersPage() {
                               </button>
                             </TableCell>
                              <TableCell>
+                              <button onClick={() => handleUpdatePaymentClick(order)}>
                                 <Badge variant="outline" className={`capitalize font-semibold border ${paymentStatusStyles[order.paymentStatus]}`}>
                                     {order.paymentStatus}
                                 </Badge>
+                              </button>
                             </TableCell>
-                            <TableCell className="capitalize">{order.paymentMethod}</TableCell>
+                            <TableCell>
+                                <button onClick={() => handleUpdatePaymentClick(order)} className="capitalize w-full text-left">
+                                 {order.paymentMethod}
+                                </button>
+                            </TableCell>
                             <TableCell>
                                 {order.products.map(p => `${p.name} (x${p.qty})`).join(', ')}
                             </TableCell>
@@ -1185,6 +1229,63 @@ export default function OrdersPage() {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button onClick={handleUpdateStatus}>Update Status</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+       <Dialog open={isUpdatePaymentDialogOpen} onOpenChange={setIsUpdatePaymentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Payment Details</DialogTitle>
+            <DialogDescription>
+              Update payment for order #{selectedOrder?.tokenNumber}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+                <Label htmlFor="payment-method">Payment Method</Label>
+                <Select 
+                    value={paymentDetails.method} 
+                    onValueChange={(value: Order['paymentMethod']) => {
+                        let newStatus = paymentDetails.status;
+                        if (value === 'cash' || value === 'online') {
+                            newStatus = 'paid';
+                        }
+                        setPaymentDetails({method: value, status: newStatus})
+                    }}
+                >
+                    <SelectTrigger id="payment-method" className="w-full mt-2">
+                        <SelectValue placeholder="Select a method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {paymentMethods.map(method => (
+                        <SelectItem key={method} value={method} className="capitalize">{method}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+             <div>
+                <Label htmlFor="payment-status">Payment Status</Label>
+                <Select 
+                    value={paymentDetails.status} 
+                    onValueChange={(value: Order['paymentStatus']) => setPaymentDetails(prev => ({...prev, status: value}))}
+                >
+                    <SelectTrigger id="payment-status" className="w-full mt-2">
+                        <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {paymentStatuses.map(status => (
+                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleUpdatePayment}>Update Payment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

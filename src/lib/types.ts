@@ -34,7 +34,7 @@ export type Order = {
   customerName?: string;
   products: { productId: string; name: string; qty: number; price: number }[];
   status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid';
-  paymentMethod: 'cash' | 'online' | 'pending';
+  paymentMethod?: 'cash' | 'online' | 'pending';
   paymentStatus: 'pending' | 'paid' | 'refunded';
   subtotal: number;
   discount?: number;
