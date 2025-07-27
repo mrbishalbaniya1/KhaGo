@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
 import { Icons } from '@/components/icons';
@@ -83,18 +84,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar variant="sidebar" collapsible="none">
+      <Sidebar variant="sidebar" collapsible="icon">
         <SidebarHeader className="flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
-              <Icons.logo className="h-8 w-8" />
-            </Button>
-            <div className="flex flex-col">
-              <h2 className="font-headline text-2xl font-bold tracking-tight">
-                CulinaryFlow
-              </h2>
+          <div className="flex items-center gap-2">
+             <Link href="/dashboard" className="flex items-center gap-2.5">
+                <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
+                <Icons.logo className="h-8 w-8" />
+                </Button>
+            </Link>
+            <div className="flex flex-col group-[[data-collapsible=icon]]:hidden">
+                <h2 className="font-headline text-2xl font-bold tracking-tight">
+                    CulinaryFlow
+                </h2>
             </div>
-          </Link>
+          </div>
+           <SidebarTrigger className="group-[[data-collapsible=icon]]:-translate-x-1" />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="flex-1">
