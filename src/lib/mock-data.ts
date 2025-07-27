@@ -40,13 +40,13 @@ export const mockUsers: User[] = [
 
 
 export const mockProducts: Product[] = [
-  { id: 'p1', name: 'Chicken Momo', price: 250, category: 'Momo', stockQty: 50, available: true, popularityScore: 10, spoilageRisk: 'high' },
-  { id: 'p2', name: 'Veg Chowmein', price: 180, category: 'Noodles', stockQty: 40, available: true, popularityScore: 8, spoilageRisk: 'medium' },
-  { id: 'p3', name: 'Vegetable Thukpa', price: 200, category: 'Soups', stockQty: 30, available: true, popularityScore: 7, spoilageRisk: 'high' },
-  { id: 'p4', name: 'Juju Dhau', price: 150, category: 'Desserts', stockQty: 25, available: true, popularityScore: 9, spoilageRisk: 'high' },
-  { id: 'p5', name: 'Aloo Sandheko', price: 120, category: 'Appetizers', stockQty: 35, available: true, popularityScore: 6, spoilageRisk: 'medium' },
-  { id: 'p6', name: 'Nepali Thali Set', price: 550, category: 'Main Course', stockQty: 20, available: true, popularityScore: 8, spoilageRisk: 'low' },
-  { id: 'p7', name: 'Masala Tea', price: 80, category: 'Beverages', stockQty: 100, available: false, popularityScore: 9, spoilageRisk: 'low' },
+  { id: 'p1', name: 'Chicken Momo', price: 250, category: 'Momo', stockQty: 0, available: true, popularityScore: 10, spoilageRisk: 'high', isStockManaged: false },
+  { id: 'p2', name: 'Veg Chowmein', price: 180, category: 'Noodles', stockQty: 0, available: true, popularityScore: 8, spoilageRisk: 'medium', isStockManaged: false },
+  { id: 'p3', name: 'Vegetable Thukpa', price: 200, category: 'Soups', stockQty: 0, available: true, popularityScore: 7, spoilageRisk: 'high', isStockManaged: false },
+  { id: 'p4', name: 'Juju Dhau', price: 150, category: 'Desserts', stockQty: 25, available: true, popularityScore: 9, spoilageRisk: 'high', isStockManaged: true },
+  { id: 'p5', name: 'Aloo Sandheko', price: 120, category: 'Appetizers', stockQty: 0, available: true, popularityScore: 6, spoilageRisk: 'medium', isStockManaged: false },
+  { id: 'p6', name: 'Nepali Thali Set', price: 550, category: 'Main Course', stockQty: 0, available: true, popularityScore: 8, spoilageRisk: 'low', isStockManaged: false },
+  { id: 'p7', name: 'Masala Tea', price: 80, category: 'Beverages', stockQty: 100, available: false, popularityScore: 9, spoilageRisk: 'low', isStockManaged: true },
 ];
 
 export const mockOrders: Order[] = [

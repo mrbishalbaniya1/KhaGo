@@ -144,6 +144,7 @@ const quickMenuItems = mockProducts.filter(p => p.popularityScore >= 8);
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -270,6 +271,22 @@ export default function OrdersPage() {
     };
 
     setOrders([newOrder, ...orders]);
+    
+    // Deduct stock for managed products
+    setProducts(currentProducts => {
+      const newProducts = [...currentProducts];
+      newOrder.products.forEach(orderProduct => {
+        const productIndex = newProducts.findIndex(p => p.id === orderProduct.productId);
+        if (productIndex !== -1) {
+          const product = newProducts[productIndex];
+          if (product.isStockManaged) {
+            newProducts[productIndex] = { ...product, stockQty: product.stockQty - orderProduct.qty };
+          }
+        }
+      });
+      return newProducts;
+    });
+
     toast({
         title: "Order Created",
         description: `New order for table ${values.tableNumber || (values.customerName || 'takeaway')} has been placed.`,
@@ -1323,4 +1340,3 @@ export default function OrdersPage() {
     </>
   );
 }
-

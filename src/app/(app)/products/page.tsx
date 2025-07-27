@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -76,11 +76,13 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
+import { cn } from '@/lib/utils';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   category: z.string().min(1, 'Category is required'),
   price: z.coerce.number().positive('Price must be a positive number'),
+  isStockManaged: z.boolean().default(false),
   stockQty: z.coerce.number().int().nonnegative('Stock must be a non-negative number'),
   available: z.boolean().default(true),
   popularityScore: z.coerce.number().min(1).max(10),
@@ -104,6 +106,7 @@ export default function ProductsPage() {
       name: '',
       category: '',
       price: 0,
+      isStockManaged: false,
       stockQty: 0,
       available: true,
       popularityScore: 5,
@@ -174,6 +177,154 @@ export default function ProductsPage() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+  
+  const ProductFormFields = ({ control }: { control: any }) => {
+    const isStockManaged = useWatch({
+      control,
+      name: 'isStockManaged',
+    });
+
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={control}
+            name="name"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Product Name</FormLabel>
+                <FormControl>
+                    <Input placeholder="e.g., Chicken Momo" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={control}
+            name="category"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Category</FormLabel>
+                <FormControl>
+                    <Input placeholder="e.g., Appetizer" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <FormField
+            control={control}
+            name="price"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Price (NPR)</FormLabel>
+                <FormControl>
+                    <Input type="number" step="0.01" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        
+        <FormField
+            control={control}
+            name="isStockManaged"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                    <FormLabel>Track Stock?</FormLabel>
+                    <FormDescription>
+                    Enable to track inventory for this product.
+                    </FormDescription>
+                    <FormMessage />
+                </div>
+                <FormControl>
+                    <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    />
+                </FormControl>
+                </FormItem>
+            )}
+            />
+        
+        <div className={cn("space-y-4", !isStockManaged && 'hidden')}>
+            <FormField
+                control={control}
+                name="stockQty"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Stock Quantity</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+                control={control}
+                name="popularityScore"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Popularity (1-10)</FormLabel>
+                    <FormControl>
+                        <Input type="number" min="1" max="10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            <FormField
+            control={control}
+            name="spoilageRisk"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Spoilage Risk</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select risk level" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <FormField
+            control={control}
+            name="available"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                    <FormLabel>Available</FormLabel>
+                    <FormMessage />
+                </div>
+                <FormControl>
+                    <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    />
+                </FormControl>
+                </FormItem>
+            )}
+            />
+      </>
+    );
+  };
+
 
   return (
     <>
@@ -212,7 +363,7 @@ export default function ProductsPage() {
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell>NPR {product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.stockQty}</TableCell>
+                    <TableCell>{product.isStockManaged ? product.stockQty : 'N/A'}</TableCell>
                     <TableCell>
                       <Badge variant={product.available ? 'default' : 'destructive'} className={product.available ? 'bg-green-500' : ''}>
                         {product.available ? 'Available' : 'Unavailable'}
@@ -300,117 +451,7 @@ export default function ProductsPage() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Product Name</FormLabel>
-                      <FormControl>
-                          <Input placeholder="e.g., Chicken Momo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-                  <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <FormControl>
-                          <Input placeholder="e.g., Appetizer" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Price (NPR)</FormLabel>
-                      <FormControl>
-                          <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-                  <FormField
-                  control={form.control}
-                  name="stockQty"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Stock Quantity</FormLabel>
-                      <FormControl>
-                          <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                      control={form.control}
-                      name="popularityScore"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Popularity (1-10)</FormLabel>
-                          <FormControl>
-                              <Input type="number" min="1" max="10" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                      />
-                  <FormField
-                  control={form.control}
-                  name="spoilageRisk"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Spoilage Risk</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                          <SelectTrigger>
-                              <SelectValue placeholder="Select risk level" />
-                          </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              </div>
-              <FormField
-                control={form.control}
-                name="available"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                      <FormLabel>Available</FormLabel>
-                      <FormMessage />
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <ProductFormFields control={form.control} />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
@@ -433,117 +474,7 @@ export default function ProductsPage() {
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                  control={editForm.control}
-                  name="name"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Product Name</FormLabel>
-                      <FormControl>
-                          <Input placeholder="e.g., Chicken Momo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-                  <FormField
-                  control={editForm.control}
-                  name="category"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <FormControl>
-                          <Input placeholder="e.g., Appetizer" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                  control={editForm.control}
-                  name="price"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Price (NPR)</FormLabel>
-                      <FormControl>
-                          <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-                  <FormField
-                  control={editForm.control}
-                  name="stockQty"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Stock Quantity</FormLabel>
-                      <FormControl>
-                          <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                      control={editForm.control}
-                      name="popularityScore"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Popularity (1-10)</FormLabel>
-                          <FormControl>
-                              <Input type="number" min="1" max="10" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                      />
-                  <FormField
-                  control={editForm.control}
-                  name="spoilageRisk"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Spoilage Risk</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                          <SelectTrigger>
-                              <SelectValue placeholder="Select risk level" />
-                          </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                  />
-              </div>
-              <FormField
-                control={editForm.control}
-                name="available"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                      <FormLabel>Available</FormLabel>
-                      <FormMessage />
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <ProductFormFields control={editForm.control} />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>

@@ -25,6 +25,7 @@ export type Product = {
   available: boolean;
   popularityScore: number;
   spoilageRisk: 'high' | 'medium' | 'low';
+  isStockManaged: boolean;
 };
 
 export type Order = {

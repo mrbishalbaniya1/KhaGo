@@ -75,6 +75,8 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
+  const stockManagedProducts = useMemo(() => mockProducts.filter(p => p.isStockManaged), [mockProducts]);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -89,7 +91,7 @@ export default function InventoryPage() {
   });
 
   const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-    const product = mockProducts.find(p => p.id === values.productId);
+    const product = stockManagedProducts.find(p => p.id === values.productId);
     if (!product) return;
 
     const newTransaction: InventoryTransaction = {
@@ -244,7 +246,7 @@ export default function InventoryPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {mockProducts.map(p => (
+                        {stockManagedProducts.map(p => (
                           <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>

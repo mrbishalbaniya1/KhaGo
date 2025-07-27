@@ -38,10 +38,10 @@ export default function DashboardPage() {
   const totalRevenue = mockOrders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = mockOrders.length;
   const totalExpenses = mockExpenses.reduce((acc, expense) => acc + expense.amount, 0);
-  const lowStockItems = mockProducts.filter(p => p.stockQty < 30).length;
+  const lowStockItems = mockProducts.filter(p => p.isStockManaged && p.stockQty < 30).length;
 
   const recentOrders = mockOrders.slice(0, 5);
-  const inventoryHighlights = mockProducts.filter(p => p.stockQty < 40).slice(0, 5);
+  const inventoryHighlights = mockProducts.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
 
   const StatCard = ({ title, value, icon: Icon, description, currency }: { title: string, value: string | number, icon: React.ElementType, description?: string, currency?: string }) => (
      <Card>
