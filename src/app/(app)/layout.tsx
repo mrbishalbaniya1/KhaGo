@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
 import { Icons } from '@/components/icons';
@@ -85,7 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="flex items-center justify-between">
+        <SidebarHeader>
           <div className="flex items-center gap-2">
              <Link href="/dashboard" className="flex items-center gap-2.5">
                 <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
@@ -98,7 +99,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </h2>
             </div>
           </div>
-           <SidebarTrigger className="group-[[data-collapsible=icon]]:-translate-x-1" />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="flex-1">
@@ -119,6 +119,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
+         <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarTrigger />
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">

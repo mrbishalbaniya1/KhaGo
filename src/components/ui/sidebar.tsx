@@ -262,17 +262,33 @@ Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
-  React.ComponentProps<typeof Button>
->(({ className, onClick, ...props }, ref) => {
+  React.ComponentProps<typeof Button> & { asChild?: boolean}
+>(({ className, onClick, asChild, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
+  const Comp = asChild ? Slot : Button;
+
+  if (asChild) {
+    return (
+        <Comp
+        ref={ref}
+        data-sidebar="trigger"
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+            onClick?.(event)
+            toggleSidebar()
+        }}
+        {...props}
+        />
+    )
+  }
 
   return (
-    <Button
+    <SidebarMenuButton
       ref={ref}
+      size="lg"
+      tooltip="Toggle Sidebar"
       data-sidebar="trigger"
       variant="ghost"
-      size="icon"
-      className={cn("h-7 w-7", className)}
+      className={cn("h-auto w-full", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -280,8 +296,8 @@ const SidebarTrigger = React.forwardRef<
       {...props}
     >
       <PanelLeft />
-      <span className="sr-only">Toggle Sidebar</span>
-    </Button>
+      <span>Toggle Sidebar</span>
+    </SidebarMenuButton>
   )
 })
 SidebarTrigger.displayName = "SidebarTrigger"
@@ -373,7 +389,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-3", className)}
+      className={cn("mt-auto flex flex-col gap-2 p-3", className)}
       {...props}
     />
   )
