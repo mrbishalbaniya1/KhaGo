@@ -62,7 +62,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const expenseSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   amount: z.coerce.number().positive('Amount must be positive'),
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().optional(),
   date: z.date({ required_error: 'A date is required.' }),
 });
 
@@ -95,6 +95,7 @@ export default function ExpensesPage() {
     const newExpense: Expense = {
       id: `e${expenses.length + 1}`,
       ...values,
+      description: values.description || '',
     };
     setExpenses([newExpense, ...expenses]);
     toast({
@@ -197,7 +198,7 @@ export default function ExpensesPage() {
                         name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Description</FormLabel>
+                            <FormLabel>Description (Optional)</FormLabel>
                             <FormControl>
                               <Textarea
                                 placeholder="e.g., Weekly vegetable supply"
