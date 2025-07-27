@@ -404,12 +404,11 @@ export default function OrdersPage() {
   
     const ProductAutocomplete = ({ form, index, field }: { form: typeof addOrderForm | typeof baseOrderForm, index: number, field: any }) => {
         const [popoverOpen, setPopoverOpen] = useState(false);
-        const inputValue = form.watch(`products.${index}.name`);
       
         const filteredProducts = useMemo(() => {
-          if (!inputValue) return mockProducts;
-          return mockProducts.filter(p => p.name.toLowerCase().includes(inputValue.toLowerCase()));
-        }, [inputValue]);
+          if (!field.value) return mockProducts;
+          return mockProducts.filter(p => p.name.toLowerCase().includes(field.value.toLowerCase()));
+        }, [field.value]);
       
         const handleSelect = (product: Product) => {
           form.setValue(`products.${index}.name`, product.name);
@@ -438,7 +437,7 @@ export default function OrdersPage() {
                     placeholder="Search product..."
                  />
                 <CommandList>
-                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandEmpty>No product found. You can add a custom one.</CommandEmpty>
                   <CommandGroup>
                     {filteredProducts.map((p) => (
                       <CommandItem
@@ -1099,3 +1098,5 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    
