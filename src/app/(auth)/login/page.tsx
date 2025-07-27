@@ -11,9 +11,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
+  User as FirebaseAuthUser,
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '@/lib/firebase';
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 import { Button } from '@/components/ui/button';
 import {
@@ -40,10 +41,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
-const formSchema = z.object({
-  name: z.string().optional(),
+const signupSchema = z.object({
+  name: z.string().min(2, { message: 'Name is required.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+});
+
+const businessInfoSchema = z.object({
+  businessName: z.string().min(2, { message: 'Business name is required.' }),
+  mobileNumber: z.string().min(1, 'Mobile number is required.'),
+  address: z.string().min(1, 'Address is required.'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
 export default function LoginPage() {
@@ -53,6 +65,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   const [showApprovalMessage, setShowApprovalMessage] = useState(false);
+  const [signupStep, setSignupStep] = useState(1);
+  const [createdUser, setCreatedUser] = useState<FirebaseAuthUser | null>(null);
 
   useEffect(() => {
     if (searchParams.get('approval') === 'pending') {
@@ -60,68 +74,78 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-    },
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
+
+  const signupForm = useForm<z.infer<typeof signupSchema>>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { name: '', email: '', password: '' },
   });
   
-  const handleUserCreation = async (user: any, name?: string, provider: 'google' | 'email' = 'email') => {
-    const userData = {
-        name: name || user.displayName,
-        email: user.email,
-        role: provider === 'google' ? 'customer' : 'manager',
-        status: provider === 'google' ? 'approved' : 'pending',
-        avatar: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
-        uid: user.uid,
-    };
-    await setDoc(doc(db, "users", user.uid), userData);
-    
-    if (userData.status === 'pending') {
-        router.push('/login?approval=pending');
-    } else {
-        router.push('/dashboard');
-    }
-  }
+  const businessInfoForm = useForm<z.infer<typeof businessInfoSchema>>({
+    resolver: zodResolver(businessInfoSchema),
+    defaultValues: { businessName: '', mobileNumber: '', address: '' },
+  });
+
+  const handleUserInDb = async (user: FirebaseAuthUser, additionalData: Record<string, any> = {}) => {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const dbUser = userDoc.data();
+        if (dbUser.status === 'pending') {
+            router.push('/login?approval=pending');
+        } else {
+            router.push('/dashboard');
+        }
+      } else {
+        const userData = {
+            name: user.displayName,
+            email: user.email,
+            role: 'customer',
+            status: 'approved',
+            avatar: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
+            uid: user.uid,
+            ...additionalData,
+        };
+        await setDoc(userDocRef, userData);
+        if (userData.status === 'pending') {
+            router.push('/login?approval=pending');
+        } else {
+            router.push('/dashboard');
+        }
+      }
+  };
 
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     setShowApprovalMessage(false);
     try {
-      if (activeTab === 'signup') {
-        if (!values.name) {
-             toast({
-                title: 'Name is required',
-                description: 'Please enter your name to sign up.',
-                variant: 'destructive',
-             });
-             setIsLoading(false);
-             return;
-        }
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        await updateProfile(userCredential.user, { displayName: values.name });
-        await handleUserCreation(userCredential.user, values.name);
-        
-        toast({
-          title: 'Account Created',
-          description: "You've successfully signed up! Your account is pending approval.",
-        });
-
-      } else {
         await signInWithEmailAndPassword(auth, values.email, values.password);
-        toast({
-          title: 'Login Successful',
-          description: 'Welcome back!',
-        });
+        toast({ title: 'Login Successful', description: 'Welcome back!' });
         router.push('/dashboard');
-      }
     } catch (error: any) {
        if (error.code === 'auth/user-disabled') {
             setShowApprovalMessage(true);
+        } else if (error.code === 'auth/invalid-credential') {
+            const userDocRef = doc(db, 'users_by_email', values.email);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const { uid } = userDoc.data();
+              const mainUserDoc = await getDoc(doc(db, 'users', uid));
+              if (mainUserDoc.exists() && mainUserDoc.data().status === 'pending') {
+                 setShowApprovalMessage(true);
+                 return;
+              }
+            }
+            toast({
+                title: 'Authentication Failed',
+                description: 'Invalid email or password.',
+                variant: 'destructive',
+            });
         } else {
              toast({
                 title: 'Authentication Failed',
@@ -133,13 +157,68 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const onSignupSubmit = async (values: z.infer<typeof signupSchema>) => {
+    setIsLoading(true);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        await updateProfile(userCredential.user, { displayName: values.name });
+        setCreatedUser(userCredential.user);
+        setSignupStep(2);
+    } catch (error: any) {
+        toast({
+            title: 'Sign Up Failed',
+            description: error.message || 'An unexpected error occurred.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const onBusinessInfoSubmit = async (values: z.infer<typeof businessInfoSchema>) => {
+    if (!createdUser) return;
+    setIsLoading(true);
+    try {
+        const userData = {
+            name: createdUser.displayName,
+            email: createdUser.email,
+            role: 'manager',
+            status: 'pending',
+            avatar: createdUser.photoURL || `https://i.pravatar.cc/150?u=${createdUser.uid}`,
+            uid: createdUser.uid,
+            ...values,
+        };
+        await setDoc(doc(db, "users", createdUser.uid), userData);
+        await setDoc(doc(db, "users_by_email", userData.email!), { uid: createdUser.uid });
+
+        toast({
+          title: 'Account Created',
+          description: "You've successfully signed up! Your account is pending approval.",
+        });
+        await auth.signOut();
+        setSignupStep(1);
+        setCreatedUser(null);
+        setActiveTab('login');
+        router.push('/login?approval=pending');
+
+    } catch (error: any) {
+         toast({
+            title: 'Sign Up Failed',
+            description: error.message || 'An unexpected error occurred.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
   
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setShowApprovalMessage(false);
     try {
         const result = await signInWithPopup(auth, googleProvider);
-        await handleUserCreation(result.user, result.user.displayName || undefined, 'google');
+        await handleUserInDb(result.user);
         toast({
             title: 'Login Successful',
             description: 'Welcome!',
@@ -153,7 +232,7 @@ export default function LoginPage() {
     } finally {
         setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -173,8 +252,8 @@ export default function LoginPage() {
         )}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="login" disabled={signupStep === 2}>Login</TabsTrigger>
+            <TabsTrigger value="signup" disabled={signupStep === 2}>Sign Up</TabsTrigger>
           </TabsList>
           <TabsContent value="login">
             <Card>
@@ -185,10 +264,10 @@ export default function LoginPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                     <FormField
-                      control={form.control}
+                      control={loginForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
@@ -206,7 +285,7 @@ export default function LoginPage() {
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={loginForm.control}
                       name="password"
                       render={({ field }) => (
                         <FormItem>
@@ -241,79 +320,141 @@ export default function LoginPage() {
           </TabsContent>
           <TabsContent value="signup">
              <Card>
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Create an Account</CardTitle>
-                <CardDescription>
-                  Sign up as a manager. Your account will require admin approval.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                     <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g. John Doe"
-                              {...field}
-                              disabled={isLoading}
+                {signupStep === 1 && (
+                  <>
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">Create an Account (Step 1/2)</CardTitle>
+                        <CardDescription>
+                        Sign up as a manager. Your account will require admin approval.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...signupForm}>
+                        <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                            <FormField
+                            control={signupForm.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    placeholder="e.g. John Doe"
+                                    {...field}
+                                    disabled={isLoading}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="user@example.com"
-                              {...field}
-                              disabled={isLoading}
+                            <FormField
+                            control={signupForm.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    {...field}
+                                    disabled={isLoading}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="********"
-                              {...field}
-                              disabled={isLoading}
+                            <FormField
+                            control={signupForm.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                    <Input
+                                    type="password"
+                                    placeholder="********"
+                                    {...field}
+                                    disabled={isLoading}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? 'Creating Account...' : 'Sign Up'}
-                    </Button>
-                  </form>
-                </Form>
-                 <Separator className="my-6" />
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-                   <Icons.logo className="mr-2 h-4 w-4" />
-                  Sign up with Google
-                </Button>
-              </CardContent>
+                            <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Creating Account...' : 'Continue'}
+                            </Button>
+                        </form>
+                        </Form>
+                        <Separator className="my-6" />
+                        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                        <Icons.logo className="mr-2 h-4 w-4" />
+                        Sign up with Google
+                        </Button>
+                    </CardContent>
+                  </>
+                )}
+                {signupStep === 2 && (
+                    <>
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">Business Information (Step 2/2)</CardTitle>
+                        <CardDescription>
+                            Please provide some details about your business.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form {...businessInfoForm}>
+                        <form onSubmit={businessInfoForm.handleSubmit(onBusinessInfoSubmit)} className="space-y-4">
+                            <FormField
+                                control={businessInfoForm.control}
+                                name="businessName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Business Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. My Awesome Restaurant" {...field} disabled={isLoading} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={businessInfoForm.control}
+                                name="mobileNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Mobile Number</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="+977-98xxxxxxxx" {...field} disabled={isLoading} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={businessInfoForm.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Address</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. 123 Main St, Kathmandu" {...field} disabled={isLoading} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full" disabled={isLoading}>
+                                {isLoading ? 'Submitting...' : 'Submit for Approval'}
+                            </Button>
+                        </form>
+                        </Form>
+                    </CardContent>
+                    </>
+                )}
             </Card>
           </TabsContent>
         </Tabs>

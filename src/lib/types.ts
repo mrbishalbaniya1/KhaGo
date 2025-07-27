@@ -14,6 +14,9 @@ export type User = {
   status: 'pending' | 'approved';
   avatar?: string;
   lastSeen?: string;
+  businessName?: string;
+  mobileNumber?: string;
+  address?: string;
 };
 
 export const userSchema = z.object({
@@ -21,6 +24,9 @@ export const userSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   role: z.enum(userRoles, { required_error: 'Role is required.' }),
   status: z.enum(['pending', 'approved'], { required_error: 'Status is required.' }),
+  businessName: z.string().optional(),
+  mobileNumber: z.string().optional(),
+  address: z.string().optional(),
 });
 
 export type Product = {

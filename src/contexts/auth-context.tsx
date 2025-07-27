@@ -64,10 +64,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUserRole(dbUser.role);
             }
         } else {
-            // User might be from Google Sign-In, not yet in DB
-            // This case should be handled during sign-up logic
-            setUserRole('customer');
-            setUserData(null);
+            // This case handles users who signed up but haven't completed business info
+            // or google sign in users not yet in db
+            if (user.providerData.some(p => p.providerId === 'password') && !user.displayName) {
+              // This is likely a user who hasn't finished step 2
+              // The login page logic will handle redirecting them. We just don't set a role here.
+               setUserRole(null);
+               setUserData(null);
+            } else {
+              // User might be from Google Sign-In, not yet in DB
+              setUserRole('customer');
+              setUserData(null);
+            }
         }
         setLoading(false);
 
