@@ -111,12 +111,12 @@ const orderProductSchema = z.object({
 
 
 const orderSchema = z.object({
-  tableNumber: z.coerce.number().optional(),
+  tableNumber: z.union([z.coerce.number().int().positive(), z.literal("")]).optional(),
   customerName: z.string().optional(),
   products: z.array(orderProductSchema).min(1, 'At least one product is required.'),
   notes: z.string().optional(),
-  discount: z.coerce.number().optional(),
-  tip: z.coerce.number().optional(),
+  discount: z.union([z.coerce.number().nonnegative(), z.literal("")]).optional(),
+  tip: z.union([z.coerce.number().nonnegative(), z.literal("")]).optional(),
   paymentMethod: z.enum(paymentMethods),
   paymentStatus: z.enum(paymentStatuses),
 });
@@ -152,12 +152,12 @@ export default function OrdersPage() {
   const addOrderForm = useForm<z.infer<typeof orderSchema>>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
-      tableNumber: undefined,
+      tableNumber: '',
       customerName: '',
       products: [{ name: '', qty: 1, price: 0 }],
       notes: '',
-      discount: 0,
-      tip: 0,
+      discount: '',
+      tip: '',
       paymentMethod: 'pending',
       paymentStatus: 'pending',
     },
@@ -185,14 +185,14 @@ export default function OrdersPage() {
     });
 
     const subtotal = newOrderProducts.reduce((acc, p) => acc + (p.price * p.qty), 0);
-    const discount = values.discount || 0;
-    const tip = values.tip || 0;
+    const discount = Number(values.discount || 0);
+    const tip = Number(values.tip || 0);
     const totalPrice = subtotal - discount + tip;
 
     const newOrder: Order = {
         id: `o${orders.length + 1}`,
         tokenNumber: `A${(Math.floor(Math.random() * 900) + 100)}`,
-        tableNumber: values.tableNumber,
+        tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
         customerName: values.customerName,
         products: newOrderProducts,
         subtotal: subtotal,
@@ -229,13 +229,14 @@ export default function OrdersPage() {
     });
 
     const subtotal = updatedProducts.reduce((acc, p) => acc + (p.price * p.qty), 0);
-    const discount = values.discount || 0;
-    const tip = values.tip || 0;
+    const discount = Number(values.discount || 0);
+    const tip = Number(values.tip || 0);
     const totalPrice = subtotal - discount + tip;
     
     setOrders(orders.map(o => o.id === selectedOrder.id ? { 
         ...o, 
         ...values,
+        tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
         products: updatedProducts,
         subtotal,
         totalPrice,
@@ -298,6 +299,11 @@ export default function OrdersPage() {
     setSelectedOrder(order);
     baseOrderForm.reset({
         ...order,
+        tableNumber: order.tableNumber || '',
+        customerName: order.customerName || '',
+        notes: order.notes || '',
+        discount: order.discount || '',
+        tip: order.tip || '',
         products: order.products.map(p => ({ name: p.name, qty: p.qty, price: p.price }))
     });
     setIsEditOrderDialogOpen(true);
@@ -349,7 +355,7 @@ export default function OrdersPage() {
       return watchedProducts.reduce((acc, p) => acc + ((p?.price || 0) * (p?.qty || 0)), 0);
     }, [watchedProducts]);
 
-    const total = subtotal - (watchedDiscount || 0) + (watchedTip || 0);
+    const total = subtotal - (Number(watchedDiscount) || 0) + (Number(watchedTip) || 0);
 
     return (
        <div className="space-y-2 p-4 rounded-lg bg-muted/50">
@@ -359,11 +365,11 @@ export default function OrdersPage() {
           </div>
           <div className="flex justify-between">
             <span>Discount</span>
-            <span className="font-medium text-destructive">- NPR {(watchedDiscount || 0).toFixed(2)}</span>
+            <span className="font-medium text-destructive">- NPR {(Number(watchedDiscount) || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Tip</span>
-            <span className="font-medium text-green-600">+ NPR {(watchedTip || 0).toFixed(2)}</span>
+            <span className="font-medium text-green-600">+ NPR {(Number(watchedTip) || 0).toFixed(2)}</span>
           </div>
           <Separator />
           <div className="flex justify-between text-lg font-bold">
@@ -385,6 +391,7 @@ export default function OrdersPage() {
             <Input
               placeholder="Product Name"
               {...field}
+              value={field.value || ''}
               onFocus={() => setSuggestionIndex(index)}
               onChange={(e) => {
                 field.onChange(e);
@@ -404,7 +411,8 @@ export default function OrdersPage() {
                     key={product.id}
                     onSelect={() => {
                       const updateFn = formType === 'add' ? update : editUpdate;
-                      updateFn(index, { name: product.name, price: product.price, qty: 1 });
+                      const watchedProducts = form.getValues('products');
+                      updateFn(index, { ...watchedProducts[index], name: product.name, price: product.price });
                       setSuggestionIndex(null);
                     }}
                   >
@@ -452,7 +460,7 @@ export default function OrdersPage() {
               searchPlaceholder="Search by order, table, or customer..."
               showDateFilter={false}
           >
-              <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+              <Select value={statusFilter} onValueChange={(value) => { if(value) { setStatusFilter(value); setCurrentPage(1);} }}>
                   <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -603,7 +611,7 @@ export default function OrdersPage() {
                                     <FormItem>
                                         <FormLabel>Table Number (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="e.g., 5" {...field} />
+                                            <Input type="number" placeholder="e.g., 5" {...field} value={field.value || ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -616,7 +624,7 @@ export default function OrdersPage() {
                                     <FormItem>
                                         <FormLabel>Customer Name (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Jane Doe" {...field} />
+                                            <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -688,7 +696,7 @@ export default function OrdersPage() {
                                 <FormItem>
                                 <FormLabel>Notes</FormLabel>
                                 <FormControl>
-                                    <Textarea placeholder="e.g., extra spicy, no onions" {...field} />
+                                    <Textarea placeholder="e.g., extra spicy, no onions" {...field} value={field.value || ''} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -702,7 +710,7 @@ export default function OrdersPage() {
                                 <FormItem>
                                     <FormLabel>Discount (NPR)</FormLabel>
                                     <FormControl>
-                                    <Input type="number" placeholder="0.00" {...field} />
+                                    <Input type="number" placeholder="0.00" {...field} value={field.value || ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -715,7 +723,7 @@ export default function OrdersPage() {
                                 <FormItem>
                                     <FormLabel>Tip (NPR)</FormLabel>
                                     <FormControl>
-                                    <Input type="number" placeholder="0.00" {...field} />
+                                    <Input type="number" placeholder="0.00" {...field} value={field.value || ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -824,7 +832,7 @@ export default function OrdersPage() {
                                     <FormItem>
                                         <FormLabel>Table Number (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="e.g., 5" {...field} />
+                                            <Input type="number" placeholder="e.g., 5" {...field} value={field.value || ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -837,7 +845,7 @@ export default function OrdersPage() {
                                     <FormItem>
                                         <FormLabel>Customer Name (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Jane Doe" {...field} />
+                                            <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -909,7 +917,7 @@ export default function OrdersPage() {
                                 <FormItem>
                                 <FormLabel>Notes</FormLabel>
                                 <FormControl>
-                                    <Textarea placeholder="e.g., extra spicy, no onions" {...field} />
+                                    <Textarea placeholder="e.g., extra spicy, no onions" {...field} value={field.value || ''} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -923,7 +931,7 @@ export default function OrdersPage() {
                                 <FormItem>
                                     <FormLabel>Discount (NPR)</FormLabel>
                                     <FormControl>
-                                    <Input type="number" placeholder="0.00" {...field} />
+                                    <Input type="number" placeholder="0.00" {...field} value={field.value || ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -936,7 +944,7 @@ export default function OrdersPage() {
                                 <FormItem>
                                     <FormLabel>Tip (NPR)</FormLabel>
                                     <FormControl>
-                                    <Input type="number" placeholder="0.00" {...field} />
+                                    <Input type="number" placeholder="0.00" {...field} value={field.value || ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -1062,5 +1070,3 @@ export default function OrdersPage() {
     </>
   );
 }
-
-    
