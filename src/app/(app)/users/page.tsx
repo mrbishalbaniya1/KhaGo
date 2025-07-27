@@ -218,6 +218,7 @@ export default function UsersPage() {
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="cook">Cook</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -379,6 +380,7 @@ export default function UsersPage() {
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="cook">Cook</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -28,6 +28,14 @@ export const mockUsers: User[] = [
     avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026707d',
     lastSeen: '15 minutes ago',
   },
+  {
+    uid: 'user-4',
+    name: 'Bikash Rai',
+    email: 'bikash.rai@culinaryflow.np',
+    role: 'cook',
+    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026708d',
+    lastSeen: 'Online',
+  },
 ];
 
 

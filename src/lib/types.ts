@@ -5,7 +5,7 @@ export type User = {
   uid: string;
   name?: string;
   email: string;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'employee' | 'cook';
   avatar?: string;
   lastSeen?: string;
 };
@@ -13,7 +13,7 @@ export type User = {
 export const userSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email." }),
-  role: z.enum(['admin', 'employee'], { required_error: 'Role is required.' }),
+  role: z.enum(['admin', 'employee', 'cook'], { required_error: 'Role is required.' }),
 });
 
 export type Product = {
