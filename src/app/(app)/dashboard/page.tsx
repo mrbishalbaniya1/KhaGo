@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
+import { useAuth } from "@/contexts/auth-context";
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -34,6 +36,14 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { userRole } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (userRole === 'superadmin') {
+      router.push('/admin');
+    }
+  }, [userRole, router]);
   
   useEffect(() => {
     setIsClient(true);
@@ -68,6 +78,14 @@ export default function DashboardPage() {
 
   const recentOrders = orders.slice(0, 5);
   const inventoryHighlights = products.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
+  
+  if (userRole === 'superadmin') {
+    return (
+        <div className="flex h-full w-full items-center justify-center">
+            <p>Redirecting to admin panel...</p>
+        </div>
+    );
+  }
 
   const StatCard = ({ title, value, icon: Icon, description, currency }: { title: string, value: string | number, icon: React.ElementType, description?: string, currency?: string }) => (
      <Card>
