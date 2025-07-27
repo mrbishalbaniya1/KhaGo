@@ -2,55 +2,78 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import type { UserRole } from '@/lib/types';
-import { doc, onSnapshot } from 'firebase/firestore';
+import type { UserRole, User } from '@/lib/types';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 
 const SUPER_ADMIN_EMAIL = 'apeuninepal.com@gmail.com';
 
 interface AuthContextType {
-  user: User | null;
+  user: FirebaseAuthUser | null;
   loading: boolean;
   userRole: UserRole | null;
+  userData: User | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   userRole: null,
+  userData: null,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseAuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [userData, setUserData] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
         // Handle Super Admin
         if (user.email === SUPER_ADMIN_EMAIL) {
           setUserRole('superadmin');
+          const superAdminData: User = {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName || 'Super Admin',
+            role: 'superadmin',
+            status: 'approved',
+          }
+          setUserData(superAdminData);
           setLoading(false);
           return;
         }
         
         // Handle regular users
         const userDocRef = doc(db, 'users', user.uid);
-        const unsubUser = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            setUserRole(doc.data().role as UserRole);
-          } else {
-            setUserRole('customer'); // Default role if not in DB
-          }
-          setLoading(false);
-        });
-        return () => unsubUser();
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+            const dbUser = userDoc.data() as User;
+            if (dbUser.status === 'pending') {
+                auth.signOut();
+                setUser(null);
+                setUserData(null);
+                setUserRole(null);
+            } else {
+                setUserData(dbUser);
+                setUserRole(dbUser.role);
+            }
+        } else {
+            // User might be from Google Sign-In, not yet in DB
+            // This case should be handled during sign-up logic
+            setUserRole('customer');
+            setUserData(null);
+        }
+        setLoading(false);
 
       } else {
         setUserRole(null);
+        setUserData(null);
         setLoading(false);
       }
     });
@@ -59,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, userRole }}>
+    <AuthContext.Provider value={{ user, loading, userRole, userData }}>
       {children}
     </AuthContext.Provider>
   );

@@ -74,6 +74,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -81,6 +82,7 @@ export default function UsersPage() {
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const { userRole } = useAuth();
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -96,6 +98,7 @@ export default function UsersPage() {
       name: '',
       email: '',
       role: 'employee',
+      status: 'approved',
     },
   });
 
@@ -143,8 +146,22 @@ export default function UsersPage() {
       name: user.name,
       email: user.email,
       role: user.role,
+      status: user.status,
     });
     setIsEditUserOpen(true);
+  };
+  
+  const handleApproveUser = async (uid: string) => {
+    try {
+      const userDoc = doc(db, 'users', uid);
+      await updateDoc(userDoc, { status: 'approved' });
+      toast({
+        title: 'User Approved',
+        description: 'The user has been approved and can now log in.',
+      });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to approve user.', variant: 'destructive' });
+    }
   };
 
   const handleDeleteUser = async (uid: string) => {
@@ -165,7 +182,7 @@ export default function UsersPage() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Users</CardTitle>
-          <CardDescription>Manage your team members.</CardDescription>
+          <CardDescription>Manage your team members and their roles.</CardDescription>
         </div>
         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
           <DialogTrigger asChild>
@@ -241,6 +258,30 @@ export default function UsersPage() {
                     </FormItem>
                   )}
                 />
+                 <FormField
+                  control={addUserForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button variant="outline">Cancel</Button>
@@ -258,7 +299,7 @@ export default function UsersPage() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Last Seen</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -291,19 +332,26 @@ export default function UsersPage() {
                     {user.role}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.lastSeen}
+                <TableCell>
+                    <Badge variant={user.status === 'approved' ? 'default' : 'secondary'} className={`capitalize ${user.status === 'approved' ? 'bg-green-500' : ''}`}>
+                        {user.status}
+                    </Badge>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                      <Button aria-haspopup="true" size="icon" variant="ghost" disabled={userRole !== 'superadmin'}>
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Toggle menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      {user.status === 'pending' && userRole === 'superadmin' && (
+                        <DropdownMenuItem onClick={() => handleApproveUser(user.uid)}>
+                            Approve
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => handleEditClick(user)}>
                         Edit
                       </DropdownMenuItem>
@@ -403,6 +451,30 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
+               <FormField
+                  control={editUserForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
