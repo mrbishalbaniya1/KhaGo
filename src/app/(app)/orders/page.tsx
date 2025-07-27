@@ -55,7 +55,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { mockOrders as initialOrders, mockProducts } from '@/lib/mock-data';
 import type { Order, Product } from '@/lib/types';
 import { format } from 'date-fns';
 import { TableToolbar } from '@/components/ui/table-toolbar';
@@ -82,9 +81,10 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import QRCode from 'react-qr-code';
 import { PrintReceipt } from '@/components/print-receipt';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, Timestamp, writeBatch } from 'firebase/firestore';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -139,11 +139,9 @@ const orderSchema = z.object({
 });
 
 
-const quickMenuItems = mockProducts.filter(p => p.popularityScore >= 8);
-
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
@@ -162,6 +160,33 @@ export default function OrdersPage() {
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
   const [paymentDetails, setPaymentDetails] = useState<{method: Order['paymentMethod'], status: Order['paymentStatus']}>({method: 'pending', status: 'pending'});
   const receiptRef = useRef<HTMLDivElement>(null);
+  
+  const quickMenuItems = useMemo(() => products.filter(p => p.popularityScore >= 8), [products]);
+
+  useEffect(() => {
+    setIsClient(true);
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: (data.createdAt as Timestamp).toDate()
+            } as Order;
+        });
+        setOrders(ordersData.sort((a,b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime()));
+    });
+    
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(productsData);
+    });
+
+    return () => {
+        unsubOrders();
+        unsubProducts();
+    }
+  }, []);
 
   const handlePrint = () => {
     const printContent = document.getElementById('print-receipt');
@@ -189,10 +214,6 @@ export default function OrdersPage() {
   };
 
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
   const baseOrderForm = useForm<z.infer<typeof orderSchema>>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
@@ -231,9 +252,9 @@ export default function OrdersPage() {
     name: "products",
   });
 
-  const onAddOrderSubmit = (values: z.infer<typeof orderSchema>) => {
+  const onAddOrderSubmit = async (values: z.infer<typeof orderSchema>) => {
     const newOrderProducts = values.products.map(p => {
-        const productDetails = mockProducts.find(mp => mp.name === p.name);
+        const productDetails = products.find(mp => mp.name === p.name);
         return {
             productId: productDetails?.id || `custom-${Date.now()}`,
             name: p.name,
@@ -253,8 +274,7 @@ export default function OrdersPage() {
     }
 
 
-    const newOrder: Order = {
-        id: `o${orders.length + 1}`,
+    const newOrder: Omit<Order, 'id'> = {
         tokenNumber: `A${(Math.floor(Math.random() * 900) + 100)}`,
         tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
         customerName: values.customerName,
@@ -265,50 +285,66 @@ export default function OrdersPage() {
         totalPrice: totalPrice,
         notes: values.notes,
         status: 'pending',
-        createdAt: new Date(),
+        createdAt: Timestamp.now(),
         paymentMethod: values.paymentMethod,
         paymentStatus: paymentStatus,
     };
 
-    setOrders([newOrder, ...orders]);
-    
-    // Deduct stock for managed products
-    setProducts(currentProducts => {
-      const newProducts = [...currentProducts];
-      newOrder.products.forEach(orderProduct => {
-        const productIndex = newProducts.findIndex(p => p.id === orderProduct.productId);
-        if (productIndex !== -1) {
-          const product = newProducts[productIndex];
-          if (product.isStockManaged) {
-            newProducts[productIndex] = { ...product, stockQty: product.stockQty - orderProduct.qty };
-          }
-        }
-      });
-      return newProducts;
-    });
+    try {
+        const batch = writeBatch(db);
+        
+        // Add new order
+        const orderRef = doc(collection(db, 'orders'));
+        batch.set(orderRef, newOrder);
+        
+        // Add inventory transaction and update product stock
+        newOrder.products.forEach(orderProduct => {
+            const product = products.find(p => p.id === orderProduct.productId);
+            if (product && product.isStockManaged) {
+                const txRef = doc(collection(db, 'inventory'));
+                batch.set(txRef, {
+                    productId: product.id,
+                    productName: product.name,
+                    qtyChange: -orderProduct.qty,
+                    reason: 'usage',
+                    date: Timestamp.now(),
+                });
 
-    toast({
-        title: "Order Created",
-        description: `New order for table ${values.tableNumber || (values.customerName || 'takeaway')} has been placed.`,
-    });
-    addOrderForm.reset({
-      tableNumber: '',
-      customerName: '',
-      products: [{ name: '', qty: 1, price: 0, productId: '' }],
-      notes: '',
-      discount: '',
-      tip: '',
-      paymentMethod: 'pending',
-      paymentStatus: 'pending',
-    });
-    setIsAddOrderDialogOpen(false);
+                const productRef = doc(db, 'products', product.id);
+                batch.update(productRef, {
+                    stockQty: product.stockQty - orderProduct.qty
+                });
+            }
+        });
+
+        await batch.commit();
+
+        toast({
+            title: "Order Created",
+            description: `New order for table ${values.tableNumber || (values.customerName || 'takeaway')} has been placed.`,
+        });
+        addOrderForm.reset({
+        tableNumber: '',
+        customerName: '',
+        products: [{ name: '', qty: 1, price: 0, productId: '' }],
+        notes: '',
+        discount: '',
+        tip: '',
+        paymentMethod: 'pending',
+        paymentStatus: 'pending',
+        });
+        setIsAddOrderDialogOpen(false);
+    } catch (error) {
+        console.error("Error creating order: ", error);
+        toast({ title: "Error", description: "Failed to create order.", variant: "destructive" });
+    }
   };
 
-  const onEditOrderSubmit = (values: z.infer<typeof orderSchema>) => {
+  const onEditOrderSubmit = async (values: z.infer<typeof orderSchema>) => {
     if (!selectedOrder) return;
     
     const updatedProducts = values.products.map(p => {
-        const productDetails = mockProducts.find(mp => mp.name === p.name);
+        const productDetails = products.find(mp => mp.name === p.name);
         return {
             productId: p.productId || productDetails?.id || selectedOrder.products.find(op => op.name === p.name)?.productId || `custom-${Date.now()}`,
             name: p.name,
@@ -327,8 +363,7 @@ export default function OrdersPage() {
         paymentStatus = 'paid';
     }
     
-    setOrders(orders.map(o => o.id === selectedOrder.id ? { 
-        ...o, 
+    const updatedOrder = { 
         ...values,
         tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
         customerName: values.customerName || '',
@@ -340,14 +375,20 @@ export default function OrdersPage() {
         paymentStatus: paymentStatus,
         subtotal,
         totalPrice,
-     } : o));
-    
-    toast({
-        title: "Order Updated",
-        description: `Order #${selectedOrder.tokenNumber} has been updated.`,
-    });
-    setIsEditOrderDialogOpen(false);
-    setSelectedOrder(null);
+     };
+     
+    try {
+        const orderDoc = doc(db, 'orders', selectedOrder.id);
+        await updateDoc(orderDoc, updatedOrder);
+        toast({
+            title: "Order Updated",
+            description: `Order #${selectedOrder.tokenNumber} has been updated.`,
+        });
+        setIsEditOrderDialogOpen(false);
+        setSelectedOrder(null);
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to update order.", variant: "destructive" });
+    }
   }
   
   const addProductToOrder = useCallback((product: Product, form: typeof addOrderForm | typeof baseOrderForm, fieldOps: {append: any, update: any, fields: any[]}) => {
@@ -392,30 +433,40 @@ export default function OrdersPage() {
     setIsViewOrderDialogOpen(true);
   }
 
-  const handleUpdateStatus = () => {
+  const handleUpdateStatus = async () => {
     if (!selectedOrder) return;
-    setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, status: newStatus } : o));
-    toast({
-      title: 'Status Updated',
-      description: `Order #${selectedOrder.tokenNumber} is now ${newStatus}.`,
-    });
-    setIsUpdateStatusDialogOpen(false);
-    setSelectedOrder(null);
+    try {
+        const orderDoc = doc(db, 'orders', selectedOrder.id);
+        await updateDoc(orderDoc, { status: newStatus });
+        toast({
+            title: 'Status Updated',
+            description: `Order #${selectedOrder.tokenNumber} is now ${newStatus}.`,
+        });
+        setIsUpdateStatusDialogOpen(false);
+        setSelectedOrder(null);
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to update status.', variant: 'destructive'});
+    }
   }
 
-  const handleUpdatePayment = () => {
+  const handleUpdatePayment = async () => {
     if (!selectedOrder) return;
      let status = paymentDetails.status;
     if (paymentDetails.method === 'cash' || paymentDetails.method === 'online') {
       status = 'paid';
     }
-    setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, paymentMethod: paymentDetails.method, paymentStatus: status } : o));
-    toast({
-      title: 'Payment Updated',
-      description: `Payment details for order #${selectedOrder.tokenNumber} have been updated.`,
-    });
-    setIsUpdatePaymentDialogOpen(false);
-    setSelectedOrder(null);
+    try {
+        const orderDoc = doc(db, 'orders', selectedOrder.id);
+        await updateDoc(orderDoc, { paymentMethod: paymentDetails.method, paymentStatus: status });
+        toast({
+        title: 'Payment Updated',
+        description: `Payment details for order #${selectedOrder.tokenNumber} have been updated.`,
+        });
+        setIsUpdatePaymentDialogOpen(false);
+        setSelectedOrder(null);
+    } catch (error) {
+         toast({ title: 'Error', description: 'Failed to update payment.', variant: 'destructive'});
+    }
   }
   
   const handleEditClick = (order: Order) => {
@@ -434,13 +485,17 @@ export default function OrdersPage() {
     setIsEditOrderDialogOpen(true);
   }
 
-  const handleDeleteOrder = (orderId: string) => {
-    setOrders(orders.filter(o => o.id !== orderId));
-    toast({
-        title: "Order Deleted",
-        description: "The order has been successfully deleted.",
-        variant: "destructive",
-    })
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+        await deleteDoc(doc(db, 'orders', orderId));
+        toast({
+            title: "Order Deleted",
+            description: "The order has been successfully deleted.",
+            variant: "destructive",
+        })
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to delete order.', variant: 'destructive'});
+    }
   }
 
   const handlePrintClick = (order: Order) => {
@@ -595,7 +650,7 @@ export default function OrdersPage() {
                                     </Badge>
                                 </button>
                             </TableCell>
-                            <TableCell>{format(order.createdAt, 'MMM d, p')}</TableCell>
+                            <TableCell>{format((order.createdAt as Timestamp).toDate(), 'MMM d, p')}</TableCell>
                             <TableCell className="text-right">
                                 <div className="font-medium">NPR {order.totalPrice.toFixed(2)}</div>
                                 <button onClick={() => handleUpdatePaymentClick(order)} className="mt-1">
@@ -1274,7 +1329,7 @@ export default function OrdersPage() {
                             key={method} 
                             variant={paymentDetails.method === method ? 'default' : 'outline'}
                             onClick={() => {
-                                let newStatus = paymentDetails.status;
+                                let newStatus: Order['paymentStatus'] = paymentDetails.status;
                                 if (method === 'cash' || method === 'online') {
                                     newStatus = 'paid';
                                 } else if (method === 'pending') {
@@ -1323,7 +1378,7 @@ export default function OrdersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
-             <PrintReceipt order={selectedOrder!} />
+             {selectedOrder && <PrintReceipt order={selectedOrder} />}
           </div>
           <DialogFooter className="mt-4">
             <Button onClick={handleDownload} variant="outline">

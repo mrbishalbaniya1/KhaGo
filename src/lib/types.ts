@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import { Timestamp } from 'firebase/firestore';
 
 export type User = {
   uid: string;
@@ -42,7 +43,7 @@ export type Order = {
   tip?: number;
   totalPrice: number;
   notes?: string;
-  createdAt: Date;
+  createdAt: Date | Timestamp;
   orderTakenBy?: string;
   cashierName?: string;
 };
@@ -52,7 +53,7 @@ export type Expense = {
   category: string;
   amount: number;
   description: string;
-  date: Date;
+  date: Date | Timestamp;
 };
 
 export type InventoryTransaction = {
@@ -61,5 +62,5 @@ export type InventoryTransaction = {
   productName: string;
   qtyChange: number;
   reason: 'stock-in' | 'usage' | 'spoilage';
-  date: Date;
+  date: Date | Timestamp;
 };

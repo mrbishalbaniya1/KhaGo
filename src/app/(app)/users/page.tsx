@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -31,7 +31,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mockUsers as initialUsers } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { userSchema } from '@/lib/types';
 import {
@@ -73,13 +72,23 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+      setUsers(usersData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const addUserForm = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
@@ -94,35 +103,38 @@ export default function UsersPage() {
     resolver: zodResolver(userSchema),
   });
 
-  const onAddUserSubmit = (values: z.infer<typeof userSchema>) => {
-    const newUser: User = {
-      uid: `user-${users.length + 1}`,
-      avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
-      lastSeen: 'Just now',
-      ...values,
-    };
-    setUsers([newUser, ...users]);
-    toast({
-      title: 'User Added',
-      description: `${values.name} has been added successfully.`,
-    });
-    addUserForm.reset();
-    setIsAddUserOpen(false);
+  const onAddUserSubmit = async (values: z.infer<typeof userSchema>) => {
+    try {
+      await addDoc(collection(db, 'users'), {
+        ...values,
+        avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+        lastSeen: 'Just now',
+      });
+      toast({
+        title: 'User Added',
+        description: `${values.name} has been added successfully.`,
+      });
+      addUserForm.reset();
+      setIsAddUserOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
+    }
   };
 
-  const onEditUserSubmit = (values: z.infer<typeof userSchema>) => {
+  const onEditUserSubmit = async (values: z.infer<typeof userSchema>) => {
     if (!selectedUser) return;
-    setUsers(
-      users.map((u) =>
-        u.uid === selectedUser.uid ? { ...u, ...values } : u
-      )
-    );
-    toast({
-      title: 'User Updated',
-      description: `${values.name}'s information has been updated.`,
-    });
-    setIsEditUserOpen(false);
-    setSelectedUser(null);
+    try {
+      const userDoc = doc(db, 'users', selectedUser.uid);
+      await updateDoc(userDoc, values);
+      toast({
+        title: 'User Updated',
+        description: `${values.name}'s information has been updated.`,
+      });
+      setIsEditUserOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+       toast({ title: 'Error', description: 'Failed to update user.', variant: 'destructive' });
+    }
   };
 
   const handleEditClick = (user: User) => {
@@ -135,13 +147,17 @@ export default function UsersPage() {
     setIsEditUserOpen(true);
   };
 
-  const handleDeleteUser = (uid: string) => {
-    setUsers(users.filter((user) => user.uid !== uid));
-    toast({
-      title: 'User Deleted',
-      description: 'The user has been removed successfully.',
-      variant: 'destructive'
-    });
+  const handleDeleteUser = async (uid: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      toast({
+        title: 'User Deleted',
+        description: 'The user has been removed successfully.',
+        variant: 'destructive'
+      });
+    } catch (error) {
+       toast({ title: 'Error', description: 'Failed to delete user.', variant: 'destructive' });
+    }
   };
 
   return (

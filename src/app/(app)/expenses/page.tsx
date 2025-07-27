@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search } from 'lucide-react';
-import { mockExpenses as initialExpenses } from '@/lib/mock-data';
 import { format, isToday, isThisWeek, isThisMonth, isThisYear } from 'date-fns';
 import {
   Dialog,
@@ -58,6 +57,8 @@ import type { Expense } from '@/lib/types';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 
 const expenseSchema = z.object({
   category: z.string().min(1, 'Category is required'),
@@ -69,7 +70,7 @@ const expenseSchema = z.object({
 const ITEMS_PER_PAGE = 10;
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('week');
@@ -79,6 +80,18 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const unsubscribe = onSnapshot(collection(db, 'expenses'), (snapshot) => {
+        const expensesData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: (data.date as Timestamp).toDate(),
+            } as Expense;
+        });
+        setExpenses(expensesData.sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()));
+    });
+    return () => unsubscribe();
   }, []);
 
   const form = useForm<z.infer<typeof expenseSchema>>({
@@ -91,19 +104,21 @@ export default function ExpensesPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof expenseSchema>) => {
-    const newExpense: Expense = {
-      id: `e${expenses.length + 1}`,
-      ...values,
-      description: values.description || '',
-    };
-    setExpenses([newExpense, ...expenses]);
-    toast({
-      title: 'Expense Added',
-      description: `The expense for ${values.category} has been added successfully.`,
-    });
-    form.reset();
-    setIsDialogOpen(false);
+  const onSubmit = async (values: z.infer<typeof expenseSchema>) => {
+    try {
+        await addDoc(collection(db, 'expenses'), {
+            ...values,
+            date: Timestamp.fromDate(values.date),
+        });
+        toast({
+        title: 'Expense Added',
+        description: `The expense for ${values.category} has been added successfully.`,
+        });
+        form.reset();
+        setIsDialogOpen(false);
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to add expense.', variant: 'destructive' });
+    }
   };
 
   const filteredExpenses = useMemo(() => {
@@ -116,11 +131,12 @@ export default function ExpensesPage() {
         );
       })
       .filter((expense) => {
+        const expenseDate = (expense.date as Timestamp).toDate();
         if (dateFilter === 'all') return true;
-        if (dateFilter === 'today') return isToday(expense.date);
-        if (dateFilter === 'week') return isThisWeek(expense.date, { weekStartsOn: 1 });
-        if (dateFilter === 'month') return isThisMonth(expense.date);
-        if (dateFilter === 'year') return isThisYear(expense.date);
+        if (dateFilter === 'today') return isToday(expenseDate);
+        if (dateFilter === 'week') return isThisWeek(expenseDate, { weekStartsOn: 1 });
+        if (dateFilter === 'month') return isThisMonth(expenseDate);
+        if (dateFilter === 'year') return isThisYear(expenseDate);
         return true;
       });
   }, [expenses, searchTerm, dateFilter]);
@@ -312,7 +328,7 @@ export default function ExpensesPage() {
                   paginatedExpenses.length > 0 ? (
                       paginatedExpenses.map((expense) => (
                           <TableRow key={expense.id}>
-                              <TableCell>{format(expense.date, 'MMM d, yyyy')}</TableCell>
+                              <TableCell>{format((expense.date as Timestamp).toDate(), 'MMM d, yyyy')}</TableCell>
                               <TableCell className="font-medium">
                               {expense.category}
                               </TableCell>

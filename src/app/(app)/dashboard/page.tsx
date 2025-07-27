@@ -10,14 +10,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle } from 'lucide-react';
-import { mockOrders, mockExpenses, mockProducts } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Order } from '@/lib/types';
+import type { Order, Product, Expense } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { Timestamp } from "firebase/firestore";
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -30,18 +31,43 @@ const statusStyles: { [key: string]: string } = {
 
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
-
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  
   useEffect(() => {
     setIsClient(true);
+    
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(5));
+    const unsubOrders = onSnapshot(q, (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate()} as Order));
+        setOrders(ordersData);
+    });
+
+    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
+        setProducts(productsData);
+    });
+
+    const unsubExpenses = onSnapshot(collection(db, "expenses"), (snapshot) => {
+        const expensesData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()} as Expense));
+        setExpenses(expensesData);
+    });
+
+    return () => {
+        unsubOrders();
+        unsubProducts();
+        unsubExpenses();
+    }
   }, []);
 
-  const totalRevenue = mockOrders.reduce((acc, order) => acc + order.totalPrice, 0);
-  const totalOrders = mockOrders.length;
-  const totalExpenses = mockExpenses.reduce((acc, expense) => acc + expense.amount, 0);
-  const lowStockItems = mockProducts.filter(p => p.isStockManaged && p.stockQty < 30).length;
+  const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+  const totalOrders = orders.length;
+  const totalExpenses = expenses.reduce((acc, expense) => acc + expense.amount, 0);
+  const lowStockItems = products.filter(p => p.isStockManaged && p.stockQty < 30).length;
 
-  const recentOrders = mockOrders.slice(0, 5);
-  const inventoryHighlights = mockProducts.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
+  const recentOrders = orders.slice(0, 5);
+  const inventoryHighlights = products.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
 
   const StatCard = ({ title, value, icon: Icon, description, currency }: { title: string, value: string | number, icon: React.ElementType, description?: string, currency?: string }) => (
      <Card>

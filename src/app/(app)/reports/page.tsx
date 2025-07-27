@@ -25,8 +25,11 @@ import {
   YAxis,
   Cell,
 } from 'recharts';
-import { mockOrders, mockExpenses, mockProducts } from '@/lib/mock-data';
+import type { Expense, Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 
 const salesData = [
     { name: 'Jan', total: 1000 + Math.random() * 4000 },
@@ -37,7 +40,39 @@ const salesData = [
     { name: 'Jun', total: 1500 + Math.random() * 3500 },
 ];
 
-const expenseData = mockExpenses
+const COLORS = ['#FF7F50', '#FFDB58', '#8884d8', '#82ca9d', '#ffc658'];
+
+export default function ReportsPage() {
+  const [isClient, setIsClient] = useState(false);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    setIsClient(true);
+    const unsubExpenses = onSnapshot(collection(db, 'expenses'), (snapshot) => {
+        const expensesData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: (data.date as Timestamp).toDate(),
+            } as Expense;
+        });
+        setExpenses(expensesData);
+    });
+
+    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
+        setProducts(productsData);
+    });
+
+    return () => {
+        unsubExpenses();
+        unsubProducts();
+    };
+  }, []);
+  
+  const expenseData = expenses
   .reduce((acc, expense) => {
     const existing = acc.find((e) => e.name === expense.category);
     if (existing) {
@@ -48,19 +83,11 @@ const expenseData = mockExpenses
     return acc;
   }, [] as { name: string; value: number }[]);
 
-const inventoryData = mockProducts.map(p => ({
-    name: p.name,
-    stock: p.stockQty,
-}));
+  const inventoryData = products.map(p => ({
+      name: p.name,
+      stock: p.stockQty,
+  }));
 
-const COLORS = ['#FF7F50', '#FFDB58', '#8884d8', '#82ca9d', '#ffc658'];
-
-export default function ReportsPage() {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const handleDownload = (data: any[], filename: string) => {
     if (!data || data.length === 0) {

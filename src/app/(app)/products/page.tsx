@@ -1,8 +1,7 @@
 
 'use client';
 
-import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,7 +32,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { mockProducts as initialProducts } from '@/lib/mock-data';
 import type { Product } from '@/lib/types';
 import {
   Dialog,
@@ -78,6 +76,8 @@ import { useToast } from '@/hooks/use-toast';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { cn } from '@/lib/utils';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -93,13 +93,21 @@ const productSchema = z.object({
 const ITEMS_PER_PAGE = 10;
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(productsData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -119,33 +127,34 @@ export default function ProductsPage() {
     resolver: zodResolver(productSchema),
   });
 
-  const onAddSubmit = (values: z.infer<typeof productSchema>) => {
-    const newProduct: Product = {
-      id: `p${products.length + 1}`,
-      ...values,
-    };
-    setProducts([newProduct, ...products]);
-    toast({
-      title: 'Product Added',
-      description: `${values.name} has been added to the catalog.`,
-    });
-    form.reset();
-    setIsAddDialogOpen(false);
+  const onAddSubmit = async (values: z.infer<typeof productSchema>) => {
+    try {
+        await addDoc(collection(db, 'products'), values);
+        toast({
+            title: 'Product Added',
+            description: `${values.name} has been added to the catalog.`,
+        });
+        form.reset();
+        setIsAddDialogOpen(false);
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to add product.', variant: 'destructive'});
+    }
   };
 
-  const onEditSubmit = (values: z.infer<typeof productSchema>) => {
+  const onEditSubmit = async (values: z.infer<typeof productSchema>) => {
     if (!selectedProduct) return;
-    setProducts(
-      products.map((p) =>
-        p.id === selectedProduct.id ? { ...p, ...values } : p
-      )
-    );
-    toast({
-      title: 'Product Updated',
-      description: `${values.name}'s information has been updated.`,
-    });
-    setIsEditDialogOpen(false);
-    setSelectedProduct(null);
+    try {
+        const productDoc = doc(db, 'products', selectedProduct.id);
+        await updateDoc(productDoc, values);
+        toast({
+        title: 'Product Updated',
+        description: `${values.name}'s information has been updated.`,
+        });
+        setIsEditDialogOpen(false);
+        setSelectedProduct(null);
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to update product.', variant: 'destructive'});
+    }
   };
 
   const handleEditClick = (product: Product) => {
@@ -154,13 +163,17 @@ export default function ProductsPage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter((product) => product.id !== id));
-    toast({
-      title: 'Product Deleted',
-      description: 'The product has been removed from the catalog.',
-      variant: 'destructive',
-    });
+  const handleDeleteProduct = async (id: string) => {
+    try {
+        await deleteDoc(doc(db, 'products', id));
+        toast({
+        title: 'Product Deleted',
+        description: 'The product has been removed from the catalog.',
+        variant: 'destructive',
+        });
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to delete product.', variant: 'destructive'});
+    }
   };
 
   const filteredProducts = useMemo(() => {

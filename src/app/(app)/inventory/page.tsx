@@ -24,7 +24,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { mockInventoryTransactions as initialTransactions, mockProducts } from '@/lib/mock-data';
 import { format, isToday, isThisWeek, isThisMonth, isThisYear } from 'date-fns';
 import {
   Dialog,
@@ -53,10 +52,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { InventoryTransaction } from '@/lib/types';
+import type { InventoryTransaction, Product } from '@/lib/types';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
 
 const transactionSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -67,7 +68,8 @@ const transactionSchema = z.object({
 const ITEMS_PER_PAGE = 10;
 
 export default function InventoryPage() {
-  const [transactions, setTransactions] = useState<InventoryTransaction[]>(initialTransactions);
+  const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
@@ -75,7 +77,31 @@ export default function InventoryPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
-  const stockManagedProducts = useMemo(() => mockProducts.filter(p => p.isStockManaged), [mockProducts]);
+  useEffect(() => {
+      const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+          const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+          setProducts(productsData);
+      });
+
+      const unsubTransactions = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+          const transactionsData = snapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                  id: doc.id,
+                  ...data,
+                  date: (data.date as Timestamp).toDate()
+              } as InventoryTransaction
+          });
+          setTransactions(transactionsData.sort((a,b) => (b.date as Date).getTime() - (a.date as Date).getTime()));
+      });
+
+      return () => {
+          unsubProducts();
+          unsubTransactions();
+      }
+  }, []);
+
+  const stockManagedProducts = useMemo(() => products.filter(p => p.isStockManaged), [products]);
 
   useEffect(() => {
     setIsClient(true);
@@ -90,23 +116,25 @@ export default function InventoryPage() {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof transactionSchema>) => {
+  const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     const product = stockManagedProducts.find(p => p.id === values.productId);
     if (!product) return;
 
-    const newTransaction: InventoryTransaction = {
-      id: `t${transactions.length + 1}`,
-      productName: product.name,
-      date: new Date(),
-      ...values,
-    };
-    setTransactions([newTransaction, ...transactions]);
-    toast({
-      title: 'Transaction Added',
-      description: `Stock for ${product.name} has been updated.`,
-    });
-    form.reset();
-    setIsDialogOpen(false);
+    try {
+        await addDoc(collection(db, 'inventory'), {
+            ...values,
+            productName: product.name,
+            date: Timestamp.now(),
+        });
+        toast({
+        title: 'Transaction Added',
+        description: `Stock for ${product.name} has been updated.`,
+        });
+        form.reset();
+        setIsDialogOpen(false);
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to add transaction.', variant: 'destructive' });
+    }
   };
 
   const filteredTransactions = useMemo(() => {
@@ -119,11 +147,12 @@ export default function InventoryPage() {
         );
       })
       .filter((transaction) => {
+        const txDate = (transaction.date as Timestamp).toDate();
         if (dateFilter === 'all') return true;
-        if (dateFilter === 'today') return isToday(transaction.date);
-        if (dateFilter === 'week') return isThisWeek(transaction.date, { weekStartsOn: 1 });
-        if (dateFilter === 'month') return isThisMonth(transaction.date);
-        if (dateFilter === 'year') return isThisYear(transaction.date);
+        if (dateFilter === 'today') return isToday(txDate);
+        if (dateFilter === 'week') return isThisWeek(txDate, { weekStartsOn: 1 });
+        if (dateFilter === 'month') return isThisMonth(txDate);
+        if (dateFilter === 'year') return isThisYear(txDate);
         return true;
       });
   }, [transactions, searchTerm, dateFilter]);
@@ -180,7 +209,7 @@ export default function InventoryPage() {
                 paginatedTransactions.length > 0 ? (
                   paginatedTransactions.map((tx) => (
                     <TableRow key={tx.id}>
-                      <TableCell>{format(tx.date, 'MMM d, yyyy p')}</TableCell>
+                      <TableCell>{format((tx.date as Timestamp).toDate(), 'MMM d, yyyy p')}</TableCell>
                       <TableCell className="font-medium">{tx.productName}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="capitalize">{tx.reason.replace('-', ' ')}</Badge>
