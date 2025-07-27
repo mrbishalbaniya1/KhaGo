@@ -251,12 +251,11 @@ export default function OrdersPage() {
   }
   
   const addProductToOrder = useCallback((product: Product, formType: 'add' | 'edit' = 'add') => {
-    const currentFields = formType === 'add' ? fields : editFields;
     const currentUpdate = formType === 'add' ? update : editUpdate;
     const currentAppend = formType === 'add' ? append : editAppend;
-    const currentControl = formType === 'add' ? addOrderForm.control : baseOrderForm.control;
-    const watchedProducts = useWatch({ control: currentControl, name: 'products' }) || [];
-
+    const form = formType === 'add' ? addOrderForm : baseOrderForm;
+    
+    const watchedProducts = form.getValues('products') || [];
 
     const existingProductIndex = watchedProducts.findIndex(
       (field) => field.name === product.name
@@ -275,7 +274,7 @@ export default function OrdersPage() {
         currentAppend({ name: product.name, qty: 1, price: product.price });
       }
     }
-  }, [fields, editFields, append, editAppend, update, editUpdate, addOrderForm, baseOrderForm]);
+  }, [update, editUpdate, append, editAppend, addOrderForm, baseOrderForm]);
 
 
   const handleUpdateStatusClick = (order: Order) => {
@@ -381,7 +380,7 @@ export default function OrdersPage() {
   };
   
   const ProductAutocomplete = ({form, index, field, formType = 'add'}: {form: any, index: number, field: any, formType?: 'add' | 'edit'}) => {
-    const productName = field.value || '';
+    const productName = form.watch(`products.${index}.name`) || '';
     const filteredProducts = mockProducts.filter(p => p.name.toLowerCase().includes(productName.toLowerCase()));
 
     return (
@@ -391,7 +390,6 @@ export default function OrdersPage() {
             <Input
               placeholder="Product Name"
               {...field}
-              value={field.value || ''}
               onFocus={() => setSuggestionIndex(index)}
               onChange={(e) => {
                 field.onChange(e);
