@@ -707,7 +707,7 @@ export default function OrdersPage() {
                 </DialogHeader>
                 <Form {...addOrderForm}>
                     <form onSubmit={addOrderForm.handleSubmit(onAddOrderSubmit)} className="px-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
@@ -843,7 +843,7 @@ export default function OrdersPage() {
                         <div className="space-y-4">
                         <div>
                             <Label>Quick Menu</Label>
-                            <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                             {quickMenuItems.map(item => (
                                 <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, addOrderForm, { append, update, fields })}>
                                 <div className="p-1 text-center">
@@ -930,7 +930,7 @@ export default function OrdersPage() {
                 </DialogHeader>
                 <Form {...baseOrderForm}>
                     <form onSubmit={baseOrderForm.handleSubmit(onEditOrderSubmit)} className="px-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
@@ -1066,7 +1066,7 @@ export default function OrdersPage() {
                         <div className="space-y-4">
                         <div>
                             <Label>Quick Menu</Label>
-                            <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                             {quickMenuItems.map(item => (
                                 <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, baseOrderForm, { append: editAppend, update: editUpdate, fields: editFields })}>
                                 <div className="p-1 text-center">
