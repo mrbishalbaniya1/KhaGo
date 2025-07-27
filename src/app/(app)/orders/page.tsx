@@ -394,6 +394,64 @@ export default function OrdersPage() {
     );
   };
   
+    const ProductAutocomplete = ({ form, index, field }: { form: typeof addOrderForm | typeof baseOrderForm, index: number, field: any }) => {
+        const [popoverOpen, setPopoverOpen] = useState(false);
+        const [inputValue, setInputValue] = useState(field.value || '');
+      
+        const filteredProducts = useMemo(() => {
+          if (!inputValue) return mockProducts;
+          return mockProducts.filter(p => p.name.toLowerCase().includes(inputValue.toLowerCase()));
+        }, [inputValue]);
+      
+        const handleSelect = (product: Product) => {
+          form.setValue(`products.${index}.name`, product.name);
+          form.setValue(`products.${index}.price`, product.price);
+          form.setValue(`products.${index}.productId`, product.id);
+          setInputValue(product.name);
+          setPopoverOpen(false);
+        };
+      
+        return (
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+                <FormControl>
+                     <Input
+                        placeholder="Product Name"
+                        value={inputValue}
+                        onChange={(e) => {
+                            setInputValue(e.target.value)
+                            form.setValue(`products.${index}.name`, e.target.value)
+                            if (!popoverOpen) setPopoverOpen(true);
+                        }}
+                        />
+                </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+              <Command>
+                <CommandInput 
+                    placeholder="Search product..."
+                    value={inputValue}
+                    onValueChange={setInputValue}
+                 />
+                <CommandList>
+                  <CommandEmpty>No product found.</CommandEmpty>
+                  <CommandGroup>
+                    {filteredProducts.map((p) => (
+                      <CommandItem
+                        key={p.id}
+                        value={p.name}
+                        onSelect={() => handleSelect(p)}
+                      >
+                        {p.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        );
+      };
 
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
@@ -609,9 +667,7 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
-                                                    </FormControl>
+                                                    <ProductAutocomplete form={addOrderForm} index={index} field={field} />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -832,9 +888,7 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
-                                                    </FormControl>
+                                                     <ProductAutocomplete form={baseOrderForm} index={index} field={field} />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
