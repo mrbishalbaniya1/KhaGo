@@ -117,6 +117,8 @@ export default function UsersPage() {
       email: '',
       role: 'employee',
       status: 'approved',
+      mobileNumber: '',
+      address: '',
     },
   });
 
@@ -243,6 +245,19 @@ export default function UsersPage() {
                         </FormItem>
                         )}
                     />
+                     <FormField
+                        control={addUserForm.control}
+                        name="mobileNumber"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Mobile Number</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., 98xxxxxxxx" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
                     <FormField
                         control={addUserForm.control}
                         name="email"
@@ -255,6 +270,19 @@ export default function UsersPage() {
                                 placeholder="e.g., hari@example.com"
                                 {...field}
                             />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={addUserForm.control}
+                        name="address"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Address</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., Kathmandu, Nepal" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
