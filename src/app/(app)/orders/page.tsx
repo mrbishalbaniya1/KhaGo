@@ -570,7 +570,6 @@ export default function OrdersPage() {
               <TableRow>
                 <TableHead>Order</TableHead>
                 <TableHead>Table</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -590,14 +589,12 @@ export default function OrdersPage() {
                             </TableCell>
                             <TableCell>{order.tableNumber || '-'}</TableCell>
                             <TableCell>
-                              <button onClick={() => handleUpdateStatusClick(order)}>
-                                <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
-                                    {order.status}
-                                </Badge>
-                              </button>
-                            </TableCell>
-                            <TableCell>
-                                {order.products.map(p => `${p.name} (x${p.qty})`).join(', ')}
+                                <div>{order.products.map(p => `${p.name} (x${p.qty})`).join(', ')}</div>
+                                <button onClick={() => handleUpdateStatusClick(order)} className="mt-1">
+                                    <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
+                                        {order.status}
+                                    </Badge>
+                                </button>
                             </TableCell>
                             <TableCell>{format(order.createdAt, 'MMM d, p')}</TableCell>
                             <TableCell className="text-right">
@@ -657,7 +654,7 @@ export default function OrdersPage() {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={7} className="text-center">
+                        <TableCell colSpan={6} className="text-center">
                             No orders found.
                         </TableCell>
                     </TableRow>
@@ -1343,11 +1340,3 @@ export default function OrdersPage() {
     </>
   );
 }
-
-    
-
-    
-
-
-
-    
