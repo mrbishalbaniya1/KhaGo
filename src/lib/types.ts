@@ -29,7 +29,7 @@ export type Product = {
 
 export type Order = {
   id: string;
-  tableNumber: number;
+  tableNumber?: number;
   tokenNumber: string;
   customerName?: string;
   products: { productId: string; name: string; qty: number }[];

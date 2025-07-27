@@ -78,7 +78,7 @@ const ITEMS_PER_PAGE = 10;
 const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
 
 const orderSchema = z.object({
-  tableNumber: z.coerce.number().min(1, 'Table number is required.'),
+  tableNumber: z.coerce.number().optional(),
   customerName: z.string().optional(),
   products: z.array(z.object({
     productId: z.string().min(1, 'Product is required.'),
@@ -174,7 +174,7 @@ export default function OrdersPage() {
         const searchLower = searchTerm.toLowerCase();
         return (
           order.tokenNumber.toLowerCase().includes(searchLower) ||
-          order.tableNumber.toString().includes(searchLower) ||
+          (order.tableNumber && order.tableNumber.toString().includes(searchLower)) ||
           (order.customerName && order.customerName.toLowerCase().includes(searchLower))
         );
       })
@@ -195,6 +195,7 @@ export default function OrdersPage() {
       <TableRow key={i}>
         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
         <TableCell><Skeleton className="h-4 w-48" /></TableCell>
         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -252,7 +253,7 @@ export default function OrdersPage() {
                     paginatedOrders.map((order) => (
                         <TableRow key={order.id}>
                             <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
-                            <TableCell>{order.tableNumber}</TableCell>
+                            <TableCell>{order.tableNumber || '-'}</TableCell>
                             <TableCell>{order.customerName || '-'}</TableCell>
                             <TableCell>
                                 <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
@@ -329,7 +330,7 @@ export default function OrdersPage() {
                           name="tableNumber"
                           render={({ field }) => (
                               <FormItem>
-                                  <FormLabel>Table Number</FormLabel>
+                                  <FormLabel>Table Number (Optional)</FormLabel>
                                   <FormControl>
                                       <Input type="number" placeholder="e.g., 5" {...field} />
                                   </FormControl>
