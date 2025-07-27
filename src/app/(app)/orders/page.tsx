@@ -150,7 +150,7 @@ export default function OrdersPage() {
     defaultValues: {
       tableNumber: '',
       customerName: '',
-      products: [{ name: '', qty: 1, price: 0, productId: '' }],
+      products: [],
       notes: '',
       discount: '',
       tip: '',
@@ -164,7 +164,7 @@ export default function OrdersPage() {
     defaultValues: {
       tableNumber: '',
       customerName: '',
-      products: [{ name: '', qty: 1, price: 0, productId: '' }],
+      products: [],
       notes: '',
       discount: '',
       tip: '',
@@ -172,7 +172,7 @@ export default function OrdersPage() {
       paymentStatus: 'pending',
     },
   });
-
+  
   const { fields, append, remove, update } = useFieldArray({
     control: addOrderForm.control,
     name: "products",
@@ -224,7 +224,7 @@ export default function OrdersPage() {
     addOrderForm.reset({
       tableNumber: '',
       customerName: '',
-      products: [{ name: '', qty: 1, price: 0, productId: '' }],
+      products: [],
       notes: '',
       discount: '',
       tip: '',
@@ -401,6 +401,65 @@ export default function OrdersPage() {
         </div>
     );
   };
+
+  const ProductAutocomplete = ({ form, index, field, formType }: { form: any, index: number, field: any, formType: 'add' | 'edit'}) => {
+    const [open, setOpen] = useState(false);
+    const [suggestions, setSuggestions] = useState<Product[]>([]);
+    
+    const updateFn = formType === 'add' ? update : editUpdate;
+
+    const handleInputChange = (value: string) => {
+      form.setValue(`products.${index}.name`, value);
+      if (value) {
+        const filtered = mockProducts.filter(p => p.name.toLowerCase().includes(value.toLowerCase()));
+        setSuggestions(filtered);
+        setOpen(true);
+      } else {
+        setSuggestions([]);
+        setOpen(false);
+      }
+    };
+    
+    const handleSelect = (product: Product) => {
+      updateFn(index, { name: product.name, qty: 1, price: product.price, productId: product.id });
+      setOpen(false);
+    };
+
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Input
+              placeholder="Product Name"
+              {...field}
+              onChange={(e) => handleInputChange(e.target.value)}
+            />
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0">
+          <Command>
+            <CommandList>
+              {suggestions.length > 0 ? (
+                <CommandGroup>
+                  {suggestions.map(product => (
+                    <CommandItem
+                      key={product.id}
+                      onSelect={() => handleSelect(product)}
+                      value={product.name}
+                    >
+                      {product.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : (
+                <CommandEmpty>No product found. You can add a custom one.</CommandEmpty>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
   
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
@@ -560,6 +619,19 @@ export default function OrdersPage() {
           <Button
             size="icon"
             className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
+            onClick={() => {
+              addOrderForm.reset({
+                  tableNumber: '',
+                  customerName: '',
+                  products: [{ name: '', qty: 1, price: 0, productId: '' }],
+                  notes: '',
+                  discount: '',
+                  tip: '',
+                  paymentMethod: 'pending',
+                  paymentStatus: 'pending',
+              });
+              setIsAddOrderDialogOpen(true);
+            }}
           >
             <PlusCircle className="h-8 w-8" />
             <span className="sr-only">Create Order</span>
@@ -616,9 +688,7 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                     <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
-                                                    </FormControl>
+                                                    <ProductAutocomplete form={addOrderForm} index={index} field={field} formType="add" />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -776,7 +846,7 @@ export default function OrdersPage() {
 
                     <DialogFooter className="mt-8 p-6 sticky bottom-0 bg-background">
                         <DialogClose asChild>
-                            <Button variant="outline" onClick={() => addOrderForm.reset()}>Cancel</Button>
+                            <Button variant="outline">Cancel</Button>
                         </DialogClose>
                         <Button type="submit">Create Order</Button>
                     </DialogFooter>
@@ -834,14 +904,12 @@ export default function OrdersPage() {
                              <div className="space-y-2 mt-2">
                                 {editFields.map((field, index) => (
                                     <div key={field.id} className="grid grid-cols-[1fr_80px_80px_auto] items-start gap-2">
-                                         <FormField
+                                        <FormField
                                             control={baseOrderForm.control}
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                     <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
-                                                    </FormControl>
+                                                    <ProductAutocomplete form={baseOrderForm} index={index} field={field} formType="edit" />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -1042,13 +1110,15 @@ export default function OrdersPage() {
 
       <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
         <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle>Print Receipt</DialogTitle>
+                <DialogDescription>
+                    Preview of the receipt for order #{selectedOrder?.tokenNumber}.
+                </DialogDescription>
+            </DialogHeader>
             {selectedOrder && <PrintReceipt order={selectedOrder} />}
         </DialogContent>
       </Dialog>
     </>
   );
 }
-
-    
-
-    
