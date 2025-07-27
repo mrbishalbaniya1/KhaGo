@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/user-nav';
 import { Icons } from '@/components/icons';
@@ -84,8 +85,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader>
-          <div className="flex items-center gap-2.5">
+        <SidebarHeader className="flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
             <Button variant="ghost" size="icon" className="h-11 w-11 text-primary">
               <Icons.logo className="h-8 w-8" />
             </Button>
@@ -94,7 +95,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 CulinaryFlow
               </h2>
             </div>
-          </div>
+          </Link>
+           <SidebarTrigger />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu className="flex-1">
