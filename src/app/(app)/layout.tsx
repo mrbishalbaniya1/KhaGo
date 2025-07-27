@@ -60,6 +60,19 @@ const mobileNavItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <Icons.logo className="h-12 w-12 animate-pulse text-primary" />
+        </div>
+      )
+  }
 
   if (isMobile) {
     return (
