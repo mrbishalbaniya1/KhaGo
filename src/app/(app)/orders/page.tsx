@@ -102,10 +102,11 @@ const paymentMethods: Order['paymentMethod'][] = ['cash', 'online', 'pending'];
 const paymentStatuses: Order['paymentStatus'][] = ['pending', 'paid', 'refunded'];
 
 const orderProductSchema = z.object({
-    productId: z.string().min(1, 'Product is required.'),
+    name: z.string().min(1, 'Product name is required.'),
     qty: z.coerce.number().min(1, 'Quantity must be at least 1.'),
-    price: z.number(),
+    price: z.coerce.number().nonnegative('Price must be a positive number.'),
 });
+
 
 const orderSchema = z.object({
   tableNumber: z.coerce.number().optional(),
@@ -150,7 +151,7 @@ export default function OrdersPage() {
     defaultValues: {
       tableNumber: undefined,
       customerName: '',
-      products: [{ productId: '', qty: 1, price: 0 }],
+      products: [{ name: '', qty: 1, price: 0 }],
       notes: '',
       discount: 0,
       tip: 0,
@@ -171,12 +172,12 @@ export default function OrdersPage() {
 
   const onAddOrderSubmit = (values: z.infer<typeof orderSchema>) => {
     const newOrderProducts = values.products.map(p => {
-        const productDetails = mockProducts.find(mp => mp.id === p.productId);
+        const productDetails = mockProducts.find(mp => mp.name === p.name);
         return {
-            productId: p.productId,
-            name: productDetails?.name || 'Unknown Product',
+            productId: productDetails?.id || `custom-${Date.now()}`,
+            name: p.name,
             qty: p.qty,
-            price: productDetails?.price || 0,
+            price: p.price,
         };
     });
 
@@ -215,12 +216,12 @@ export default function OrdersPage() {
     if (!selectedOrder) return;
     
     const updatedProducts = values.products.map(p => {
-        const productDetails = mockProducts.find(mp => mp.id === p.productId);
+        const productDetails = mockProducts.find(mp => mp.name === p.name);
         return {
-            productId: p.productId,
-            name: productDetails?.name || 'Unknown Product',
+            productId: productDetails?.id || selectedOrder.products.find(op => op.name === p.name)?.productId || `custom-${Date.now()}`,
+            name: p.name,
             qty: p.qty,
-            price: productDetails?.price || 0,
+            price: p.price,
         };
     });
 
@@ -249,27 +250,25 @@ export default function OrdersPage() {
     const currentFields = formType === 'add' ? fields : editFields;
     const currentUpdate = formType === 'add' ? update : editUpdate;
     const currentAppend = formType === 'add' ? append : editAppend;
-    const control = formType === 'add' ? addOrderForm.control : baseOrderForm.control;
-
 
     const existingProductIndex = currentFields.findIndex(
-      (field) => field.productId === product.id
+      (field) => 'name' in field && field.name === product.name
     );
 
     if (existingProductIndex !== -1) {
       const existingProduct = currentFields[existingProductIndex];
       currentUpdate(existingProductIndex, {
         ...existingProduct,
-        qty: existingProduct.qty + 1,
+        qty: (existingProduct.qty || 0) + 1,
       });
     } else {
-       if (currentFields.length === 1 && currentFields[0].productId === '') {
-        currentUpdate(0, { productId: product.id, qty: 1, price: product.price });
+       if (currentFields.length === 1 && 'name' in currentFields[0] && currentFields[0].name === '') {
+        currentUpdate(0, { name: product.name, qty: 1, price: product.price });
       } else {
-        currentAppend({ productId: product.id, qty: 1, price: product.price });
+        currentAppend({ name: product.name, qty: 1, price: product.price });
       }
     }
-  }, [fields, editFields, append, editAppend, update, editUpdate, addOrderForm, baseOrderForm]);
+  }, [fields, editFields, append, editAppend, update, editUpdate]);
 
 
   const handleUpdateStatusClick = (order: Order) => {
@@ -293,7 +292,7 @@ export default function OrdersPage() {
     setSelectedOrder(order);
     baseOrderForm.reset({
         ...order,
-        products: order.products.map(p => ({ productId: p.productId, qty: p.qty, price: p.price }))
+        products: order.products.map(p => ({ name: p.name, qty: p.qty, price: p.price }))
     });
     setIsEditOrderDialogOpen(true);
   }
@@ -575,58 +574,57 @@ export default function OrdersPage() {
                         
                         <div>
                             <Label>Products</Label>
-                            <div className="space-y-2 mt-2">
-                            {fields.map((field, index) => (
-                                <div key={field.id} className="flex items-start gap-2">
-                                    <FormField
-                                        control={addOrderForm.control}
-                                        name={`products.${index}.productId`}
-                                        render={({ field: formField }) => (
-                                            <FormItem className="flex-1">
-                                                <Select onValueChange={(value) => {
-                                                    const product = mockProducts.find(p => p.id === value);
-                                                    formField.onChange(value);
-                                                    addOrderForm.setValue(`products.${index}.price`, product?.price || 0);
-                                                }} defaultValue={formField.value}>
+                             <div className="space-y-2 mt-2">
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="grid grid-cols-[1fr_80px_80px_auto] items-start gap-2">
+                                         <FormField
+                                            control={addOrderForm.control}
+                                            name={`products.${index}.name`}
+                                            render={({ field }) => (
+                                                <FormItem>
                                                     <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select a product" />
-                                                        </SelectTrigger>
+                                                        <Input placeholder="Product Name" {...field} />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        {mockProducts.filter(p => p.available).map((product: Product) => (
-                                                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={addOrderForm.control}
-                                        name={`products.${index}.qty`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormControl>
-                                                    <Input type="number" placeholder="Qty" className="w-20" {...field} min={1}/>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <=1}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={addOrderForm.control}
+                                            name={`products.${index}.qty`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="Qty" {...field} min={1} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={addOrderForm.control}
+                                            name={`products.${index}.price`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="Price" {...field} min={0} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <=1}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
                                 </div>
-                            ))}
-                            </div>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 className="mt-2"
-                                onClick={() => append({ productId: '', qty: 1, price: 0 })}
+                                onClick={() => append({ name: '', qty: 1, price: 0 })}
                             >
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                             </Button>
@@ -798,59 +796,58 @@ export default function OrdersPage() {
                         </div>
                         
                         <div>
-                            <Label>Products</Label>
-                            <div className="space-y-2 mt-2">
-                            {editFields.map((field, index) => (
-                                <div key={field.id} className="flex items-start gap-2">
-                                    <FormField
-                                        control={baseOrderForm.control}
-                                        name={`products.${index}.productId`}
-                                        render={({ field: formField }) => (
-                                            <FormItem className="flex-1">
-                                                <Select onValueChange={(value) => {
-                                                    const product = mockProducts.find(p => p.id === value);
-                                                    formField.onChange(value);
-                                                    baseOrderForm.setValue(`products.${index}.price`, product?.price || 0);
-                                                }} defaultValue={formField.value}>
+                           <Label>Products</Label>
+                             <div className="space-y-2 mt-2">
+                                {editFields.map((field, index) => (
+                                    <div key={field.id} className="grid grid-cols-[1fr_80px_80px_auto] items-start gap-2">
+                                         <FormField
+                                            control={baseOrderForm.control}
+                                            name={`products.${index}.name`}
+                                            render={({ field }) => (
+                                                <FormItem>
                                                     <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select a product" />
-                                                        </SelectTrigger>
+                                                        <Input placeholder="Product Name" {...field} />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        {mockProducts.filter(p => p.available).map((product: Product) => (
-                                                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={baseOrderForm.control}
-                                        name={`products.${index}.qty`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormControl>
-                                                    <Input type="number" placeholder="Qty" className="w-20" {...field} min={1}/>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <Button type="button" variant="destructive" size="icon" onClick={() => editRemove(index)} disabled={editFields.length <=1}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={baseOrderForm.control}
+                                            name={`products.${index}.qty`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="Qty" {...field} min={1} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={baseOrderForm.control}
+                                            name={`products.${index}.price`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder="Price" {...field} min={0} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button type="button" variant="destructive" size="icon" onClick={() => editRemove(index)} disabled={editFields.length <=1}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
                                 </div>
-                            ))}
-                            </div>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 className="mt-2"
-                                onClick={() => editAppend({ productId: '', qty: 1, price: 0 })}
+                                onClick={() => editAppend({ name: '', qty: 1, price: 0 })}
                             >
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                             </Button>
