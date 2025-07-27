@@ -2,11 +2,15 @@
 import { z } from 'zod';
 import { Timestamp } from 'firebase/firestore';
 
+export const userRoles = ['superadmin', 'admin', 'manager', 'waiter', 'cook', 'employee', 'cashier', 'customer'] as const;
+
+export type UserRole = (typeof userRoles)[number];
+
 export type User = {
   uid: string;
   name?: string;
   email: string;
-  role: 'admin' | 'employee' | 'cook';
+  role: UserRole;
   avatar?: string;
   lastSeen?: string;
 };
@@ -14,7 +18,7 @@ export type User = {
 export const userSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email." }),
-  role: z.enum(['admin', 'employee', 'cook'], { required_error: 'Role is required.' }),
+  role: z.enum(userRoles, { required_error: 'Role is required.' }),
 });
 
 export type Product = {
@@ -36,14 +40,14 @@ export type Order = {
   customerName?: string;
   products: { productId: string; name: string; qty: number; price: number }[];
   status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid';
-  paymentMethod?: 'cash' | 'online' | 'pending';
+  paymentMethod: 'cash' | 'online' | 'pending';
   paymentStatus: 'pending' | 'paid' | 'refunded';
   subtotal: number;
-  discount?: number;
-  tip?: number;
+  discount: number;
+  tip: number;
   totalPrice: number;
   notes?: string;
-  createdAt: Date | Timestamp;
+  createdAt: Date;
   orderTakenBy?: string;
   cashierName?: string;
 };

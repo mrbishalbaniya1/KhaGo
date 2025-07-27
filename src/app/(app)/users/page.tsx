@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { User } from '@/lib/types';
-import { userSchema } from '@/lib/types';
+import { userSchema, userRoles } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -232,9 +232,9 @@ export default function UsersPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="employee">Employee</SelectItem>
-                          <SelectItem value="cook">Cook</SelectItem>
+                          {userRoles.map(role => (
+                            <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -394,9 +394,9 @@ export default function UsersPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="cook">Cook</SelectItem>
+                        {userRoles.map(role => (
+                            <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
