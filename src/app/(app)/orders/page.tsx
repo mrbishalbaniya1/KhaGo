@@ -85,6 +85,7 @@ import QRCode from 'react-qr-code';
 import { PrintReceipt } from '@/components/print-receipt';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { useAuth } from '@/contexts/auth-context';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -148,6 +149,7 @@ export default function OrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
   const [isAddOrderDialogOpen, setIsAddOrderDialogOpen] = useState(false);
@@ -1378,7 +1380,7 @@ export default function OrdersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
-             {selectedOrder && <PrintReceipt order={selectedOrder} />}
+             {selectedOrder && <PrintReceipt order={selectedOrder} businessInfo={userData} />}
           </div>
           <DialogFooter className="mt-4">
             <Button onClick={handleDownload} variant="outline">
@@ -1393,7 +1395,7 @@ export default function OrdersPage() {
         </DialogContent>
       </Dialog>
       <div className="absolute -left-[9999px] -top-[9999px]">
-        {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
+        {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} businessInfo={userData} />}
       </div>
     </>
   );

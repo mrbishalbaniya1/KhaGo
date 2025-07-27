@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Order } from '@/lib/types';
+import type { Order, User } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { format } from 'date-fns';
 import { Icons } from './icons';
@@ -10,9 +10,10 @@ import QRCode from 'react-qr-code';
 
 interface PrintReceiptProps {
   order: Order;
+  businessInfo?: Partial<User> | null;
 }
 
-export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(({ order }, ref) => {
+export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(({ order, businessInfo }, ref) => {
   const qrValue = JSON.stringify({
     tokenNumber: order.tokenNumber,
     totalPrice: order.totalPrice.toFixed(2),
@@ -25,9 +26,9 @@ export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(
     <div ref={ref} className="p-4 bg-white text-black text-sm font-sans">
         <div className="text-center space-y-2 mb-6">
             <Icons.logo className="h-12 w-12 mx-auto text-black" />
-            <h2 className="text-xl font-bold font-headline">CulinaryFlow</h2>
-            <p>123 Main Street, Kathmandu, Nepal</p>
-            <p>+977-9800000000</p>
+            <h2 className="text-xl font-bold font-headline">{businessInfo?.businessName || 'CulinaryFlow'}</h2>
+            <p>{businessInfo?.address || '123 Main Street, Kathmandu, Nepal'}</p>
+            <p>{businessInfo?.mobileNumber || '+977-9800000000'}</p>
             <Separator className="bg-black/50" />
         </div>
 
