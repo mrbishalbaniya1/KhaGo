@@ -83,6 +83,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { PrintReceipt } from '@/components/print-receipt';
+import { useReactToPrint } from 'react-to-print';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -155,6 +156,11 @@ export default function OrdersPage() {
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
+
+  const receiptRef = useRef(null);
+  const handlePrint = useReactToPrint({
+    content: () => receiptRef.current,
+  });
 
   useEffect(() => {
     setIsClient(true);
@@ -1166,7 +1172,13 @@ export default function OrdersPage() {
                     Preview of the receipt for order #{selectedOrder?.tokenNumber}.
                 </DialogDescription>
             </DialogHeader>
-            {selectedOrder && <PrintReceipt order={selectedOrder} />}
+            {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
+            <DialogFooter className="mt-4">
+              <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+              </DialogClose>
+              <Button onClick={handlePrint}>Print Receipt</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
