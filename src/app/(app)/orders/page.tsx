@@ -80,7 +80,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { PrintReceipt } from '@/components/print-receipt';
 
@@ -140,7 +140,6 @@ export default function OrdersPage() {
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
-  const [suggestionIndex, setSuggestionIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -222,7 +221,16 @@ export default function OrdersPage() {
         title: "Order Created",
         description: `New order for table ${values.tableNumber || (values.customerName || 'takeaway')} has been placed.`,
     });
-    addOrderForm.reset();
+    addOrderForm.reset({
+      tableNumber: '',
+      customerName: '',
+      products: [{ name: '', qty: 1, price: 0, productId: '' }],
+      notes: '',
+      discount: '',
+      tip: '',
+      paymentMethod: 'pending',
+      paymentStatus: 'pending',
+    });
     setIsAddOrderDialogOpen(false);
   };
 
@@ -396,7 +404,7 @@ export default function OrdersPage() {
   
     const ProductAutocomplete = ({ form, index, field }: { form: typeof addOrderForm | typeof baseOrderForm, index: number, field: any }) => {
         const [popoverOpen, setPopoverOpen] = useState(false);
-        const [inputValue, setInputValue] = useState(field.value || '');
+        const inputValue = form.watch(`products.${index}.name`);
       
         const filteredProducts = useMemo(() => {
           if (!inputValue) return mockProducts;
@@ -407,7 +415,6 @@ export default function OrdersPage() {
           form.setValue(`products.${index}.name`, product.name);
           form.setValue(`products.${index}.price`, product.price);
           form.setValue(`products.${index}.productId`, product.id);
-          setInputValue(product.name);
           setPopoverOpen(false);
         };
       
@@ -417,10 +424,9 @@ export default function OrdersPage() {
                 <FormControl>
                      <Input
                         placeholder="Product Name"
-                        value={inputValue}
+                        {...field}
                         onChange={(e) => {
-                            setInputValue(e.target.value)
-                            form.setValue(`products.${index}.name`, e.target.value)
+                            field.onChange(e.target.value);
                             if (!popoverOpen) setPopoverOpen(true);
                         }}
                         />
@@ -430,8 +436,6 @@ export default function OrdersPage() {
               <Command>
                 <CommandInput 
                     placeholder="Search product..."
-                    value={inputValue}
-                    onValueChange={setInputValue}
                  />
                 <CommandList>
                   <CommandEmpty>No product found.</CommandEmpty>
