@@ -13,7 +13,13 @@ interface PrintReceiptProps {
 }
 
 export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(({ order }, ref) => {
-  const qrValue = `order_id:${order.id},total:${order.totalPrice.toFixed(2)}`;
+  const qrValue = JSON.stringify({
+    tokenNumber: order.tokenNumber,
+    totalPrice: order.totalPrice.toFixed(2),
+    date: order.createdAt.toISOString(),
+    customer: order.customerName || 'N/A',
+    table: order.tableNumber || 'N/A',
+  });
   
   return (
     <div ref={ref} className="p-4 bg-white text-black text-sm font-sans">
@@ -92,7 +98,7 @@ export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(
         
         <div className="mt-6 flex flex-col items-center justify-center space-y-2">
           <QRCode value={qrValue} size={100} />
-          <p className="text-xs">Scan to pay</p>
+          <p className="text-xs">Scan for details</p>
         </div>
 
         <div className="text-center mt-6">
