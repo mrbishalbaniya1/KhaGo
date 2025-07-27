@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -515,7 +514,6 @@ export default function OrdersPage() {
       <TableRow key={i}>
         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
         <TableCell><Skeleton className="h-4 w-48" /></TableCell>
@@ -573,7 +571,6 @@ export default function OrdersPage() {
               <TableRow>
                 <TableHead>Order</TableHead>
                 <TableHead>Table</TableHead>
-                <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Items</TableHead>
@@ -591,9 +588,9 @@ export default function OrdersPage() {
                                 <button onClick={() => handleViewClick(order)} className="hover:underline">
                                     #{order.tokenNumber}
                                 </button>
+                                {order.customerName && <div className="text-xs text-muted-foreground">{order.customerName}</div>}
                             </TableCell>
                             <TableCell>{order.tableNumber || '-'}</TableCell>
-                            <TableCell>{order.customerName || '-'}</TableCell>
                             <TableCell>
                               <button onClick={() => handleUpdateStatusClick(order)}>
                                 <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
@@ -662,7 +659,7 @@ export default function OrdersPage() {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={9} className="text-center">
+                        <TableCell colSpan={8} className="text-center">
                             No orders found.
                         </TableCell>
                     </TableRow>
@@ -683,7 +680,6 @@ export default function OrdersPage() {
           </CardFooter>
       </Card>
       
-      {/* Add Order Dialog */}
       <Dialog open={isAddOrderDialogOpen} onOpenChange={setIsAddOrderDialogOpen}>
         <DialogTrigger asChild>
           <Button
@@ -928,7 +924,6 @@ export default function OrdersPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Order Dialog */}
        <Dialog open={isEditOrderDialogOpen} onOpenChange={setIsEditOrderDialogOpen}>
         <DialogContent className="max-w-4xl h-full sm:h-auto">
            <ScrollArea className="h-full">
@@ -1350,5 +1345,7 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    
 
     
