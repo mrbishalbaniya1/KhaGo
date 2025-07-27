@@ -120,6 +120,20 @@ const orderSchema = z.object({
   tip: z.union([z.coerce.number().nonnegative(), z.literal("")]).optional(),
   paymentMethod: z.enum(paymentMethods),
   paymentStatus: z.enum(paymentStatuses),
+}).superRefine((data, ctx) => {
+    if (!data.tableNumber && !data.customerName) {
+        const errorMessage = "Either Table Number or Customer Name is required.";
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['tableNumber'],
+            message: errorMessage,
+        });
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['customerName'],
+            message: errorMessage,
+        });
+    }
 });
 
 
@@ -404,62 +418,63 @@ export default function OrdersPage() {
 
   const ProductAutocomplete = ({ form, index, field, formType }: { form: any, index: number, field: any, formType: 'add' | 'edit'}) => {
     const [open, setOpen] = useState(false);
-    const [suggestions, setSuggestions] = useState<Product[]>([]);
-    
+    const [inputValue, setInputValue] = useState(field.value || '');
     const updateFn = formType === 'add' ? update : editUpdate;
-
-    const handleInputChange = (value: string) => {
-      form.setValue(`products.${index}.name`, value);
-      if (value) {
-        const filtered = mockProducts.filter(p => p.name.toLowerCase().includes(value.toLowerCase()));
-        setSuggestions(filtered);
-        setOpen(true);
-      } else {
-        setSuggestions([]);
-        setOpen(false);
-      }
-    };
     
-    const handleSelect = (product: Product) => {
-      updateFn(index, { name: product.name, qty: 1, price: product.price, productId: product.id });
-      setOpen(false);
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setInputValue(value);
+        form.setValue(`products.${index}.name`, value);
+        if (!open) setOpen(true);
     };
+
+    const handleSelect = (product: Product) => {
+        setInputValue(product.name);
+        updateFn(index, { name: product.name, qty: form.getValues(`products.${index}.qty`) || 1, price: product.price, productId: product.id });
+        setOpen(false);
+    };
+
+    const suggestions = useMemo(() => {
+        if (!inputValue) return [];
+        return mockProducts.filter(p => p.name.toLowerCase().includes(inputValue.toLowerCase()));
+    }, [inputValue]);
 
     return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Input
-              placeholder="Product Name"
-              {...field}
-              onChange={(e) => handleInputChange(e.target.value)}
-            />
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0">
-          <Command>
-            <CommandList>
-              {suggestions.length > 0 ? (
-                <CommandGroup>
-                  {suggestions.map(product => (
-                    <CommandItem
-                      key={product.id}
-                      onSelect={() => handleSelect(product)}
-                      value={product.name}
-                    >
-                      {product.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ) : (
-                <CommandEmpty>No product found. You can add a custom one.</CommandEmpty>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Input
+                    placeholder="Product Name"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    className="w-full"
+                />
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0">
+                <Command>
+                    <CommandInput 
+                        placeholder="Search product..." 
+                        value={inputValue}
+                        onValueChange={setInputValue}
+                    />
+                    <CommandList>
+                        <CommandEmpty>No product found. You can add a custom one.</CommandEmpty>
+                        <CommandGroup>
+                            {suggestions.map(product => (
+                                <CommandItem
+                                    key={product.id}
+                                    onSelect={() => handleSelect(product)}
+                                    value={product.name}
+                                >
+                                    {product.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
-  };
+};
   
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
@@ -688,7 +703,9 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <ProductAutocomplete form={addOrderForm} index={index} field={field} formType="add" />
+                                                    <FormControl>
+                                                        <ProductAutocomplete form={addOrderForm} index={index} field={field} formType="add" />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -909,7 +926,9 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <ProductAutocomplete form={baseOrderForm} index={index} field={field} formType="edit" />
+                                                    <FormControl>
+                                                      <ProductAutocomplete form={baseOrderForm} index={index} field={field} formType="edit" />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
