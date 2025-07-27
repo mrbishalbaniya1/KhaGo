@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { mockUser } from "@/lib/mock-data";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, Settings } from "lucide-react";
 
 export function UserNav() {
   const { name, email, avatar } = mockUser;
@@ -44,6 +44,12 @@ export function UserNav() {
             <DropdownMenuItem>
               <UserIcon />
               Profile
+            </DropdownMenuItem>
+          </Link>
+           <Link href="/settings">
+            <DropdownMenuItem>
+              <Settings />
+              Settings
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
