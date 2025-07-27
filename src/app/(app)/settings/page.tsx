@@ -21,11 +21,9 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 
 export default function SettingsPage() {
-  // In a real app, you'd use a theme provider context like next-themes
-  // and state management for settings. For this mock, we'll just have the UI.
-
   return (
     <div className="space-y-6">
       <Card>
@@ -47,16 +45,7 @@ export default function SettingsPage() {
                   Select the application's color scheme.
                 </p>
               </div>
-              <Select defaultValue="system">
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select theme" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                </SelectContent>
-              </Select>
+              <ThemeSwitcher />
             </div>
           </div>
 
