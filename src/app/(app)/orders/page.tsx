@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -1172,7 +1173,14 @@ export default function OrdersPage() {
                     Preview of the receipt for order #{selectedOrder?.tokenNumber}.
                 </DialogDescription>
             </DialogHeader>
-            {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
+            {/* The component for preview */}
+            <div className='mt-4'>
+                 {selectedOrder && <PrintReceipt order={selectedOrder} />}
+            </div>
+            {/* The component to be printed (hidden) */}
+            <div className="hidden">
+                 {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
+            </div>
             <DialogFooter className="mt-4">
               <DialogClose asChild>
                   <Button variant="outline">Close</Button>
@@ -1184,3 +1192,4 @@ export default function OrdersPage() {
     </>
   );
 }
+

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useRef } from 'react';
+import React from 'react';
 import type { Order } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { format } from 'date-fns';
@@ -13,7 +13,7 @@ interface PrintReceiptProps {
 
 export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(({ order }, ref) => {
   return (
-    <div ref={ref} className="p-4 bg-white text-black text-sm">
+    <div ref={ref} className="p-4 bg-white text-black text-sm font-sans">
         <div className="text-center space-y-2 mb-6">
             <Icons.logo className="h-12 w-12 mx-auto text-black" />
             <h2 className="text-xl font-bold font-headline">CulinaryFlow</h2>
@@ -59,13 +59,13 @@ export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(
                 <span>Subtotal</span>
                 <span>NPR {order.subtotal.toFixed(2)}</span>
             </div>
-            {order.discount && (
+            {order.discount > 0 && (
                 <div className="flex justify-between">
                     <span>Discount</span>
                     <span>- NPR {order.discount.toFixed(2)}</span>
                 </div>
             )}
-             {order.tip && (
+             {order.tip > 0 && (
                 <div className="flex justify-between">
                     <span>Tip</span>
                     <span>+ NPR {order.tip.toFixed(2)}</span>
