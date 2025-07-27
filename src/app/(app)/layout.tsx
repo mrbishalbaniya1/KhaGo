@@ -42,6 +42,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: Banknote },
   { href: '/reports', label: 'Reports', icon: AreaChart },
   { href: '/customers', label: 'Customers', icon: Users },
+  { href: '/users', label: 'Team', icon: Users },
 ];
 
 const adminNavItems = [

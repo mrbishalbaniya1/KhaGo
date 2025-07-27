@@ -83,10 +83,10 @@ export function UserNav() {
               <span>Settings</span>
             </DropdownMenuItem>
           </Link>
-           <Link href={userRole === 'superadmin' ? "/users" : "/customers"}>
+           <Link href={userRole === 'superadmin' ? "/users" : "/team"}>
             <DropdownMenuItem>
               <Users className="mr-2 h-4 w-4" />
-              <span>{userRole === 'superadmin' ? 'Users' : 'Customers'}</span>
+              <span>{userRole === 'superadmin' ? 'Managers' : 'Team'}</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
