@@ -131,7 +131,7 @@ export default function ExpensesPage() {
         );
       })
       .filter((expense) => {
-        const expenseDate = (expense.date as Timestamp).toDate();
+        const expenseDate = expense.date as Date;
         if (dateFilter === 'all') return true;
         if (dateFilter === 'today') return isToday(expenseDate);
         if (dateFilter === 'week') return isThisWeek(expenseDate, { weekStartsOn: 1 });
@@ -328,7 +328,7 @@ export default function ExpensesPage() {
                   paginatedExpenses.length > 0 ? (
                       paginatedExpenses.map((expense) => (
                           <TableRow key={expense.id}>
-                              <TableCell>{format((expense.date as Timestamp).toDate(), 'MMM d, yyyy')}</TableCell>
+                              <TableCell>{format(expense.date as Date, 'MMM d, yyyy')}</TableCell>
                               <TableCell className="font-medium">
                               {expense.category}
                               </TableCell>
