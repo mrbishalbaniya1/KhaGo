@@ -1142,13 +1142,13 @@ export default function OrdersPage() {
                     <span>Subtotal</span>
                     <span>NPR {selectedOrder.subtotal.toFixed(2)}</span>
                 </div>
-                {selectedOrder.discount && (
+                {selectedOrder.discount > 0 && (
                     <div className="flex justify-between">
                         <span>Discount</span>
                         <span>- NPR {selectedOrder.discount.toFixed(2)}</span>
                     </div>
                 )}
-                 {selectedOrder.tip && (
+                 {selectedOrder.tip > 0 && (
                     <div className="flex justify-between">
                         <span>Tip</span>
                         <span>+ NPR {selectedOrder.tip.toFixed(2)}</span>
