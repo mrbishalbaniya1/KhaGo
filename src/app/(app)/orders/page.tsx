@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,13 +23,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -41,6 +42,17 @@ import {
   DialogClose,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { mockOrders as initialOrders, mockProducts } from '@/lib/mock-data';
 import type { Order, Product } from '@/lib/types';
 import { format } from 'date-fns';
@@ -68,6 +80,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PrintReceipt } from '@/components/print-receipt';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -80,18 +93,21 @@ const statusStyles: { [key: string]: string } = {
 const ITEMS_PER_PAGE = 10;
 const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
 
-const orderSchema = z.object({
-  tableNumber: z.coerce.number().optional(),
-  customerName: z.string().optional(),
-  products: z.array(z.object({
+const orderProductSchema = z.object({
     productId: z.string().min(1, 'Product is required.'),
     qty: z.coerce.number().min(1, 'Quantity must be at least 1.'),
     price: z.number(),
-  })).min(1, 'At least one product is required.'),
+});
+
+const orderSchema = z.object({
+  tableNumber: z.coerce.number().optional(),
+  customerName: z.string().optional(),
+  products: z.array(orderProductSchema).min(1, 'At least one product is required.'),
   notes: z.string().optional(),
   discount: z.coerce.number().optional(),
   tip: z.coerce.number().optional(),
 });
+
 
 const quickMenuItems = mockProducts.filter(p => p.popularityScore >= 8);
 
@@ -105,6 +121,9 @@ export default function OrdersPage() {
 
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
   const [isAddOrderDialogOpen, setIsAddOrderDialogOpen] = useState(false);
+  const [isEditOrderDialogOpen, setIsEditOrderDialogOpen] = useState(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
 
@@ -112,6 +131,10 @@ export default function OrdersPage() {
     setIsClient(true);
   }, []);
   
+  const baseOrderForm = useForm<z.infer<typeof orderSchema>>({
+    resolver: zodResolver(orderSchema),
+  });
+
   const addOrderForm = useForm<z.infer<typeof orderSchema>>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
@@ -126,6 +149,11 @@ export default function OrdersPage() {
 
   const { fields, append, remove, update } = useFieldArray({
     control: addOrderForm.control,
+    name: "products",
+  });
+  
+  const { fields: editFields, append: editAppend, remove: editRemove, update: editUpdate } = useFieldArray({
+    control: baseOrderForm.control,
     name: "products",
   });
 
@@ -168,26 +196,66 @@ export default function OrdersPage() {
     addOrderForm.reset();
     setIsAddOrderDialogOpen(false);
   };
+
+  const onEditOrderSubmit = (values: z.infer<typeof orderSchema>) => {
+    if (!selectedOrder) return;
+    
+    const updatedProducts = values.products.map(p => {
+        const productDetails = mockProducts.find(mp => mp.id === p.productId);
+        return {
+            productId: p.productId,
+            name: productDetails?.name || 'Unknown Product',
+            qty: p.qty,
+            price: productDetails?.price || 0,
+        };
+    });
+
+    const subtotal = updatedProducts.reduce((acc, p) => acc + (p.price * p.qty), 0);
+    const discount = values.discount || 0;
+    const tip = values.tip || 0;
+    const totalPrice = subtotal - discount + tip;
+    
+    setOrders(orders.map(o => o.id === selectedOrder.id ? { 
+        ...o, 
+        ...values,
+        products: updatedProducts,
+        subtotal,
+        totalPrice,
+     } : o));
+    
+    toast({
+        title: "Order Updated",
+        description: `Order #${selectedOrder.tokenNumber} has been updated.`,
+    });
+    setIsEditOrderDialogOpen(false);
+    setSelectedOrder(null);
+  }
   
-  const addProductToOrder = useCallback((product: Product) => {
-    const existingProductIndex = fields.findIndex(
+  const addProductToOrder = useCallback((product: Product, formType: 'add' | 'edit' = 'add') => {
+    const currentFields = formType === 'add' ? fields : editFields;
+    const currentUpdate = formType === 'add' ? update : editUpdate;
+    const currentAppend = formType === 'add' ? append : editAppend;
+    const control = formType === 'add' ? addOrderForm.control : baseOrderForm.control;
+
+
+    const existingProductIndex = currentFields.findIndex(
       (field) => field.productId === product.id
     );
 
     if (existingProductIndex !== -1) {
-      const existingProduct = fields[existingProductIndex];
-      update(existingProductIndex, {
+      const existingProduct = currentFields[existingProductIndex];
+      currentUpdate(existingProductIndex, {
         ...existingProduct,
         qty: existingProduct.qty + 1,
       });
     } else {
-       if (fields.length === 1 && fields[0].productId === '') {
-        update(0, { productId: product.id, qty: 1, price: product.price });
+       if (currentFields.length === 1 && currentFields[0].productId === '') {
+        currentUpdate(0, { productId: product.id, qty: 1, price: product.price });
       } else {
-        append({ productId: product.id, qty: 1, price: product.price });
+        currentAppend({ productId: product.id, qty: 1, price: product.price });
       }
     }
-  }, [fields, append, update]);
+  }, [fields, editFields, append, editAppend, update, editUpdate, addOrderForm, baseOrderForm]);
 
 
   const handleUpdateStatusClick = (order: Order) => {
@@ -205,6 +273,29 @@ export default function OrdersPage() {
     });
     setIsUpdateStatusDialogOpen(false);
     setSelectedOrder(null);
+  }
+  
+  const handleEditClick = (order: Order) => {
+    setSelectedOrder(order);
+    baseOrderForm.reset({
+        ...order,
+        products: order.products.map(p => ({ productId: p.productId, qty: p.qty, price: p.price }))
+    });
+    setIsEditOrderDialogOpen(true);
+  }
+
+  const handleDeleteOrder = (orderId: string) => {
+    setOrders(orders.filter(o => o.id !== orderId));
+    toast({
+        title: "Order Deleted",
+        description: "The order has been successfully deleted.",
+        variant: "destructive",
+    })
+  }
+
+  const handlePrintClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsPrintDialogOpen(true);
   }
 
   const filteredOrders = useMemo(() => {
@@ -229,22 +320,14 @@ export default function OrdersPage() {
     currentPage * ITEMS_PER_PAGE
   );
   
-  const WatchedForm = () => {
-    const watchedProducts = useWatch({
-      control: addOrderForm.control,
-      name: 'products'
-    });
-    const watchedDiscount = useWatch({
-      control: addOrderForm.control,
-      name: 'discount'
-    });
-    const watchedTip = useWatch({
-      control: addOrderForm.control,
-      name: 'tip'
-    });
+  const WatchedForm = ({ control } : { control: typeof addOrderForm.control | typeof baseOrderForm.control }) => {
+    const watchedProducts = useWatch({ control, name: 'products' });
+    const watchedDiscount = useWatch({ control, name: 'discount' });
+    const watchedTip = useWatch({ control, name: 'tip' });
 
     const subtotal = useMemo(() => {
-      return watchedProducts.reduce((acc, p) => acc + (p.price * p.qty), 0);
+      if (!watchedProducts) return 0;
+      return watchedProducts.reduce((acc, p) => acc + ((p?.price || 0) * (p?.qty || 0)), 0);
     }, [watchedProducts]);
 
     const total = subtotal - (watchedDiscount || 0) + (watchedTip || 0);
@@ -357,8 +440,35 @@ export default function OrdersPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleEditClick(order)}>
+                                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleUpdateStatusClick(order)}>Update Status</DropdownMenuItem>
-                                    <DropdownMenuItem>Print Receipt</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handlePrintClick(order)}>
+                                        <Printer className="mr-2 h-4 w-4" /> Print Receipt
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                     <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                          </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently delete the order.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteOrder(order.id)}>
+                                                Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </TableCell>
@@ -387,6 +497,7 @@ export default function OrdersPage() {
           </CardFooter>
       </Card>
       
+      {/* Add Order Dialog */}
       <Dialog open={isAddOrderDialogOpen} onOpenChange={setIsAddOrderDialogOpen}>
         <DialogTrigger asChild>
           <Button
@@ -546,7 +657,7 @@ export default function OrdersPage() {
                             <Label>Quick Menu</Label>
                             <div className="grid grid-cols-3 gap-2 mt-2">
                             {quickMenuItems.map(item => (
-                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item)}>
+                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, 'add')}>
                                 <div className="p-1 text-center">
                                     <span className="block text-sm font-medium">{item.name}</span>
                                     <span className="block text-xs text-muted-foreground">NPR {item.price}</span>
@@ -555,7 +666,7 @@ export default function OrdersPage() {
                             ))}
                             </div>
                         </div>
-                        <WatchedForm />
+                        <WatchedForm control={addOrderForm.control} />
                         </div>
                     </div>
 
@@ -564,6 +675,182 @@ export default function OrdersPage() {
                             <Button variant="outline" onClick={() => addOrderForm.reset()}>Cancel</Button>
                         </DialogClose>
                         <Button type="submit">Create Order</Button>
+                    </DialogFooter>
+                    </form>
+                </Form>
+           </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Order Dialog */}
+       <Dialog open={isEditOrderDialogOpen} onOpenChange={setIsEditOrderDialogOpen}>
+        <DialogContent className="max-w-4xl h-full sm:h-auto">
+           <ScrollArea className="h-full">
+                <DialogHeader className="p-6">
+                    <DialogTitle>Edit Order #{selectedOrder?.tokenNumber}</DialogTitle>
+                    <DialogDescription>
+                    Update products, customer details, and other information for this order.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...baseOrderForm}>
+                    <form onSubmit={baseOrderForm.handleSubmit(onEditOrderSubmit)} className="px-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={baseOrderForm.control}
+                                name="tableNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Table Number (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="e.g., 5" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={baseOrderForm.control}
+                                name="customerName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Customer Name (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Jane Doe" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        
+                        <div>
+                            <Label>Products</Label>
+                            <div className="space-y-2 mt-2">
+                            {editFields.map((field, index) => (
+                                <div key={field.id} className="flex items-start gap-2">
+                                    <FormField
+                                        control={baseOrderForm.control}
+                                        name={`products.${index}.productId`}
+                                        render={({ field: formField }) => (
+                                            <FormItem className="flex-1">
+                                                <Select onValueChange={(value) => {
+                                                    const product = mockProducts.find(p => p.id === value);
+                                                    formField.onChange(value);
+                                                    baseOrderForm.setValue(`products.${index}.price`, product?.price || 0);
+                                                }} defaultValue={formField.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a product" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {mockProducts.filter(p => p.available).map((product: Product) => (
+                                                            <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={baseOrderForm.control}
+                                        name={`products.${index}.qty`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input type="number" placeholder="Qty" className="w-20" {...field} min={1}/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <Button type="button" variant="destructive" size="icon" onClick={() => editRemove(index)} disabled={editFields.length <=1}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => editAppend({ productId: '', qty: 1, price: 0 })}
+                            >
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <FormField
+                            control={baseOrderForm.control}
+                            name="notes"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Notes</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="e.g., extra spicy, no onions" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={baseOrderForm.control}
+                                name="discount"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Discount (NPR)</FormLabel>
+                                    <FormControl>
+                                    <Input type="number" placeholder="0.00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={baseOrderForm.control}
+                                name="tip"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Tip (NPR)</FormLabel>
+                                    <FormControl>
+                                    <Input type="number" placeholder="0.00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            </div>
+                        </div>
+                        </div>
+                        <div className="space-y-4">
+                        <div>
+                            <Label>Quick Menu</Label>
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                            {quickMenuItems.map(item => (
+                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, 'edit')}>
+                                <div className="p-1 text-center">
+                                    <span className="block text-sm font-medium">{item.name}</span>
+                                    <span className="block text-xs text-muted-foreground">NPR {item.price}</span>
+                                </div>
+                                </Button>
+                            ))}
+                            </div>
+                        </div>
+                        <WatchedForm control={baseOrderForm.control} />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="mt-8 p-6 sticky bottom-0 bg-background">
+                        <DialogClose asChild>
+                            <Button variant="outline" onClick={() => setIsEditOrderDialogOpen(false)}>Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit">Save Changes</Button>
                     </DialogFooter>
                     </form>
                 </Form>
@@ -599,6 +886,12 @@ export default function OrdersPage() {
             </DialogClose>
             <Button onClick={handleUpdateStatus}>Update Status</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
+        <DialogContent className="max-w-md">
+            {selectedOrder && <PrintReceipt order={selectedOrder} />}
         </DialogContent>
       </Dialog>
     </>
