@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil, Eye } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil, Eye, Download } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,6 +156,7 @@ export default function OrdersPage() {
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
     const printContent = document.getElementById('print-receipt');
@@ -169,6 +170,44 @@ export default function OrdersPage() {
     }
   };
 
+  const handleDownload = () => {
+    if (receiptRef.current) {
+      const styles = Array.from(document.styleSheets)
+        .map((styleSheet) => {
+          try {
+            return Array.from(styleSheet.cssRules)
+              .map((rule) => rule.cssText)
+              .join('');
+          } catch (e) {
+            console.log('Access to stylesheet %s is denied. Skipping.', styleSheet.href);
+            return '';
+          }
+        })
+        .join('\n');
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Receipt</title>
+            <style>${styles}</style>
+          </head>
+          <body>
+            ${receiptRef.current.innerHTML}
+          </body>
+        </html>
+      `;
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${selectedOrder?.tokenNumber}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -302,12 +341,10 @@ export default function OrdersPage() {
     setSelectedOrder(null);
   }
   
-  const addProductToOrder = useCallback((product: Product, formType: 'add' | 'edit' = 'add') => {
-    const form = formType === 'add' ? addOrderForm : baseOrderForm;
-    const currentUpdate = formType === 'add' ? update : editUpdate;
-    const currentAppend = formType === 'add' ? append : editAppend;
+  const addProductToOrder = useCallback((product: Product, form: typeof addOrderForm | typeof baseOrderForm, fieldOps: {append: any, update: any, fields: any[]}) => {
+    const { append, update, fields } = fieldOps;
+    
     const watchedProducts = form.getValues('products') || [];
-
 
     const existingProductIndex = watchedProducts.findIndex(
       (field) => field.productId === product.id
@@ -315,18 +352,18 @@ export default function OrdersPage() {
 
     if (existingProductIndex !== -1) {
       const existingProduct = watchedProducts[existingProductIndex];
-      currentUpdate(existingProductIndex, {
+      update(existingProductIndex, {
         ...existingProduct,
         qty: (existingProduct.qty || 0) + 1,
       });
     } else {
        if (watchedProducts.length === 1 && watchedProducts[0].name === '') {
-        currentUpdate(0, { name: product.name, qty: 1, price: product.price, productId: product.id });
+        update(0, { name: product.name, qty: 1, price: product.price, productId: product.id });
       } else {
-        currentAppend({ name: product.name, qty: 1, price: product.price, productId: product.id });
+        append({ name: product.name, qty: 1, price: product.price, productId: product.id });
       }
     }
-  }, [update, editUpdate, append, editAppend, addOrderForm, baseOrderForm]);
+  }, []);
 
 
   const handleUpdateStatusClick = (order: Order) => {
@@ -763,7 +800,7 @@ export default function OrdersPage() {
                             <Label>Quick Menu</Label>
                             <div className="grid grid-cols-3 gap-2 mt-2">
                             {quickMenuItems.map(item => (
-                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, 'add')}>
+                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, addOrderForm, { append, update, fields })}>
                                 <div className="p-1 text-center">
                                     <span className="block text-sm font-medium">{item.name}</span>
                                     <span className="block text-xs text-muted-foreground">NPR {item.price}</span>
@@ -986,7 +1023,7 @@ export default function OrdersPage() {
                             <Label>Quick Menu</Label>
                             <div className="grid grid-cols-3 gap-2 mt-2">
                             {quickMenuItems.map(item => (
-                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, 'edit')}>
+                                <Button key={item.id} type="button" variant="outline" className="h-auto" onClick={() => addProductToOrder(item, baseOrderForm, { append: editAppend, update: editUpdate, fields: editFields })}>
                                 <div className="p-1 text-center">
                                     <span className="block text-sm font-medium">{item.name}</span>
                                     <span className="block text-xs text-muted-foreground">NPR {item.price}</span>
@@ -1174,16 +1211,20 @@ export default function OrdersPage() {
       
       <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
         <DialogContent className="max-w-md" id="print-receipt">
-          <DialogHeader>
+           <DialogHeader>
             <DialogTitle>Print Receipt</DialogTitle>
             <DialogDescription>
               Preview of the receipt for order #{selectedOrder?.tokenNumber}.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
-            {selectedOrder && <PrintReceipt order={selectedOrder} />}
+             <PrintReceipt order={selectedOrder!} />
           </div>
           <DialogFooter className="mt-4">
+            <Button onClick={handleDownload} variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
             <DialogClose asChild>
               <Button variant="outline">Close</Button>
             </DialogClose>
@@ -1191,6 +1232,9 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <div className="hidden">
+        {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
+      </div>
     </>
   );
 }
