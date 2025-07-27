@@ -169,7 +169,7 @@ export default function ExpensesPage() {
       setSelectedExpense(expense);
       editForm.reset({
           ...expense,
-          date: (expense.date as Timestamp).toDate(),
+          date: expense.date as Date,
       });
       setIsEditDialogOpen(true);
   }
