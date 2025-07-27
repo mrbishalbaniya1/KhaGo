@@ -231,9 +231,6 @@ export default function ProductsPage() {
                           <DropdownMenuItem onClick={() => handleEditClick(product)}>
                             Edit
                           </DropdownMenuItem>
-                          <Link href={`/pricing-assistant?productId=${product.id}`} passHref>
-                            <DropdownMenuItem>Suggest Price</DropdownMenuItem>
-                          </Link>
                           <DropdownMenuSeparator />
                            <AlertDialog>
                             <AlertDialogTrigger asChild>

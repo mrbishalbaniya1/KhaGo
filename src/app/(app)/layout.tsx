@@ -25,7 +25,6 @@ import {
   Users,
   AreaChart,
   Package,
-  Sparkles,
   Settings,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,7 +38,6 @@ const navItems = [
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
   { href: '/reports', label: 'Reports', icon: AreaChart },
-  { href: '/pricing-assistant', label: 'AI Pricing', icon: Sparkles },
   { href: '/users', label: 'Users', icon: Users },
 ];
 
