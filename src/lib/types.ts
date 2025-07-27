@@ -17,6 +17,7 @@ export type User = {
   businessName?: string;
   mobileNumber?: string;
   address?: string;
+  managerId?: string; // To link employees to a manager
 };
 
 export const userSchema = z.object({
@@ -27,6 +28,7 @@ export const userSchema = z.object({
   businessName: z.string().optional(),
   mobileNumber: z.string().optional(),
   address: z.string().optional(),
+  managerId: z.string().optional(),
 });
 
 export type Product = {

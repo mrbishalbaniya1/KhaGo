@@ -46,7 +46,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (userRole === 'superadmin') {
-      const q = query(collection(db, 'users'), where('status', '==', 'pending'));
+      const q = query(collection(db, 'users'), where('status', '==', 'pending'), where('role', '==', 'manager'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
         setPendingUsers(usersData);
@@ -60,11 +60,11 @@ export default function AdminPage() {
       const userDoc = doc(db, 'users', uid);
       await updateDoc(userDoc, { status: 'approved' });
       toast({
-        title: 'User Approved',
-        description: 'The user has been approved and can now log in.',
+        title: 'Manager Approved',
+        description: 'The manager has been approved and can now log in.',
       });
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to approve user.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to approve manager.', variant: 'destructive' });
     }
   };
 
@@ -97,9 +97,9 @@ export default function AdminPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pending Approvals</CardTitle>
+          <CardTitle>Pending Manager Approvals</CardTitle>
           <CardDescription>
-            The following users have signed up and are awaiting approval.
+            The following managers have signed up and are awaiting approval.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -141,7 +141,7 @@ export default function AdminPage() {
                     </TableBody>
                 </Table>
             ) : (
-                <p className="text-muted-foreground">There are no pending user approvals at this time.</p>
+                <p className="text-muted-foreground">There are no pending manager approvals at this time.</p>
             )}
         </CardContent>
       </Card>

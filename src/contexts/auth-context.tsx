@@ -6,6 +6,7 @@ import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import type { UserRole, User } from '@/lib/types';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 const SUPER_ADMIN_EMAIL = 'apeuninepal.com@gmail.com';
 
@@ -28,6 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -38,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserRole('superadmin');
           const superAdminData: User = {
             uid: user.uid,
-            email: user.email,
+            email: user.email!,
             name: user.displayName || 'Super Admin',
             role: 'superadmin',
             status: 'approved',
@@ -50,34 +52,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Handle regular users
         const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-            const dbUser = userDoc.data() as User;
-            if (dbUser.status === 'pending') {
-                auth.signOut();
-                setUser(null);
-                setUserData(null);
-                setUserRole(null);
+        const userDocUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+            if (userDoc.exists()) {
+                const dbUser = userDoc.data() as User;
+                if (dbUser.status === 'pending') {
+                    auth.signOut();
+                    setUser(null);
+                    setUserData(null);
+                    setUserRole(null);
+                    router.push('/login?approval=pending');
+                } else {
+                    setUserData(dbUser);
+                    setUserRole(dbUser.role);
+                }
             } else {
-                setUserData(dbUser);
-                setUserRole(dbUser.role);
+                // This case handles users who signed up but haven't completed business info
+                // or google sign in users not yet in db
+                if (user.providerData.some(p => p.providerId === 'password') && !user.displayName) {
+                  // This is likely a user who hasn't finished step 2
+                  // The login page logic will handle redirecting them. We just don't set a role here.
+                   setUserRole(null);
+                   setUserData(null);
+                } else {
+                  // User might be from Google Sign-In, not yet in DB
+                  setUserRole('customer');
+                  setUserData(null);
+                }
             }
-        } else {
-            // This case handles users who signed up but haven't completed business info
-            // or google sign in users not yet in db
-            if (user.providerData.some(p => p.providerId === 'password') && !user.displayName) {
-              // This is likely a user who hasn't finished step 2
-              // The login page logic will handle redirecting them. We just don't set a role here.
-               setUserRole(null);
-               setUserData(null);
-            } else {
-              // User might be from Google Sign-In, not yet in DB
-              setUserRole('customer');
-              setUserData(null);
-            }
-        }
-        setLoading(false);
+            setLoading(false);
+        });
+        
+        return () => userDocUnsubscribe();
 
       } else {
         setUserRole(null);
@@ -87,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, loading, userRole, userData }}>

@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { User } from '@/lib/types';
-import { userSchema, userRoles } from '@/lib/types';
+import { userSchema, userRoles as allRoles } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -73,9 +73,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
+
+const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
+
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -84,15 +87,18 @@ export default function UsersPage() {
   const [isViewUserOpen, setIsViewUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
-  const { userRole } = useAuth();
+  const { user, userRole } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+    if (!user || userRole !== 'manager') return;
+
+    const q = query(collection(db, 'users'), where('managerId', '==', user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
       setUsers(usersData);
     });
     return () => unsubscribe();
-  }, []);
+  }, [user, userRole]);
 
   const addUserForm = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
@@ -109,11 +115,13 @@ export default function UsersPage() {
   });
 
   const onAddUserSubmit = async (values: z.infer<typeof userSchema>) => {
+    if (!user) return;
     try {
       await addDoc(collection(db, 'users'), {
         ...values,
+        managerId: user.uid,
+        status: 'approved', // Employees added by manager are auto-approved
         avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
-        lastSeen: 'Just now',
       });
       toast({
         title: 'User Added',
@@ -157,19 +165,6 @@ export default function UsersPage() {
     setSelectedUser(user);
     setIsViewUserOpen(true);
   }
-  
-  const handleApproveUser = async (uid: string) => {
-    try {
-      const userDoc = doc(db, 'users', uid);
-      await updateDoc(userDoc, { status: 'approved' });
-      toast({
-        title: 'User Approved',
-        description: 'The user has been approved and can now log in.',
-      });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to approve user.', variant: 'destructive' });
-    }
-  };
 
   const handleDeleteUser = async (uid: string) => {
     try {
@@ -183,27 +178,36 @@ export default function UsersPage() {
        toast({ title: 'Error', description: 'Failed to delete user.', variant: 'destructive' });
     }
   };
+  
+  if (userRole !== 'manager') {
+      return (
+          <div className="flex h-full w-full items-center justify-center">
+              <p>This page is for managers to manage their staff.</p>
+          </div>
+      );
+  }
+
 
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Users</CardTitle>
+            <CardTitle>Team Members</CardTitle>
             <CardDescription>Manage your team members and their roles.</CardDescription>
           </div>
           <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <PlusCircle className="h-4 w-4 mr-2" />
-                Add User
+                Add Employee
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
+                <DialogTitle>Add New Employee</DialogTitle>
                 <DialogDescription>
-                  Fill in the details to invite a new user.
+                  Fill in the details to invite a new employee.
                 </DialogDescription>
               </DialogHeader>
               <Form {...addUserForm}>
@@ -257,33 +261,9 @@ export default function UsersPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {userRoles.map(role => (
+                            {employeeRoles.map(role => (
                               <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addUserForm.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -350,7 +330,7 @@ export default function UsersPage() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost" disabled={userRole !== 'superadmin'}>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Toggle menu</span>
                         </Button>
@@ -358,11 +338,6 @@ export default function UsersPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleViewClick(user)}>View</DropdownMenuItem>
-                        {user.status === 'pending' && userRole === 'superadmin' && (
-                          <DropdownMenuItem onClick={() => handleApproveUser(user.uid)}>
-                              Approve
-                          </DropdownMenuItem>
-                        )}
                         <DropdownMenuItem onClick={() => handleEditClick(user)}>
                           Edit
                         </DropdownMenuItem>
@@ -453,7 +428,7 @@ export default function UsersPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {userRoles.map(role => (
+                          {employeeRoles.map(role => (
                               <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
                           ))}
                         </SelectContent>
@@ -462,30 +437,6 @@ export default function UsersPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                    control={editUserForm.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button variant="outline">Cancel</Button>
