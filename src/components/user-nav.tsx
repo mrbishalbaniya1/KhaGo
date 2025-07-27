@@ -2,6 +2,7 @@
 'use client';
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,18 +14,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { mockUser } from "@/lib/mock-data";
+import { useAuth } from "@/contexts/auth-context";
+import { getAuth, signOut } from "firebase/auth";
 import { LogOut, User as UserIcon, Settings } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export function UserNav() {
-  const { name, email, avatar } = mockUser;
+  const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  
+  const name = user?.displayName || user?.email?.split('@')[0];
+  const email = user?.email;
+  const avatar = user?.photoURL;
+
+  const handleSignOut = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      router.push("/login");
+    } catch (error) {
+       toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: 'destructive'
+      });
+    }
+  };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={avatar} alt={name || "User"} />
+            {avatar && <AvatarImage src={avatar} alt={name || "User"} />}
             <AvatarFallback>{name?.[0].toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
@@ -54,7 +85,7 @@ export function UserNav() {
           </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSignOut}>
           <LogOut />
           Log out
         </DropdownMenuItem>
