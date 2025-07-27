@@ -1275,6 +1275,8 @@ export default function OrdersPage() {
                                 let newStatus = paymentDetails.status;
                                 if (method === 'cash' || method === 'online') {
                                     newStatus = 'paid';
+                                } else if (method === 'pending') {
+                                    newStatus = 'pending';
                                 }
                                 setPaymentDetails({method: method, status: newStatus})
                             }}
