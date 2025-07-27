@@ -27,6 +27,7 @@ import {
   AreaChart,
   Package,
   Settings,
+  Shield,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
@@ -43,6 +44,10 @@ const navItems = [
   { href: '/users', label: 'Users', icon: Users },
 ];
 
+const adminNavItems = [
+    { href: '/admin', label: 'Admin', icon: Shield },
+]
+
 const mobileNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/orders', label: 'Orders', icon: ClipboardList },
@@ -54,7 +59,7 @@ const mobileNavItems = [
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
-  const { user, loading } = useAuth();
+  const { user, loading, userRole } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -108,6 +113,21 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu className="flex-1">
             {navItems.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith(item.href)}
+                  tooltip={item.label}
+                  size="lg"
+                >
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+             {userRole === 'superadmin' && adminNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   asChild
