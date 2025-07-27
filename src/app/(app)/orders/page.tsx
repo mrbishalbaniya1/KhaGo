@@ -2,6 +2,9 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Card,
   CardContent,
@@ -20,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +42,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { mockOrders as initialOrders, mockProducts } from '@/lib/mock-data';
-import type { Order } from '@/lib/types';
+import type { Order, Product } from '@/lib/types';
 import { format } from 'date-fns';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
@@ -54,6 +57,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -65,6 +76,14 @@ const statusStyles: { [key: string]: string } = {
 
 const ITEMS_PER_PAGE = 10;
 const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
+
+const orderSchema = z.object({
+  tableNumber: z.coerce.number().min(1, 'Table number is required.'),
+  products: z.array(z.object({
+    productId: z.string().min(1, 'Product is required.'),
+    qty: z.coerce.number().min(1, 'Quantity must be at least 1.'),
+  })).min(1, 'At least one product is required.'),
+});
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
@@ -82,6 +101,52 @@ export default function OrdersPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const addOrderForm = useForm<z.infer<typeof orderSchema>>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: {
+      tableNumber: undefined,
+      products: [{ productId: '', qty: 1 }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: addOrderForm.control,
+    name: "products",
+  });
+  
+  const onAddOrderSubmit = (values: z.infer<typeof orderSchema>) => {
+    const newOrderProducts = values.products.map(p => {
+        const productDetails = mockProducts.find(mp => mp.id === p.productId);
+        return {
+            productId: p.productId,
+            name: productDetails?.name || 'Unknown Product',
+            qty: p.qty,
+            price: productDetails?.price || 0,
+        };
+    });
+
+    const totalPrice = newOrderProducts.reduce((acc, p) => acc + (p.price * p.qty), 0);
+
+    const newOrder: Order = {
+        id: `o${orders.length + 1}`,
+        tokenNumber: `A${(Math.floor(Math.random() * 900) + 100)}`,
+        tableNumber: values.tableNumber,
+        products: newOrderProducts.map(({price, ...rest}) => rest),
+        totalPrice: totalPrice,
+        status: 'pending',
+        createdAt: new Date(),
+    };
+
+    setOrders([newOrder, ...orders]);
+    toast({
+        title: "Order Created",
+        description: `New order for table ${values.tableNumber} has been successfully placed.`,
+    });
+    addOrderForm.reset();
+    setIsAddOrderDialogOpen(false);
+  };
+
 
   const handleUpdateStatusClick = (order: Order) => {
     setSelectedOrder(order);
@@ -243,29 +308,91 @@ export default function OrdersPage() {
             <span className="sr-only">Create Order</span>
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Create New Order</DialogTitle>
             <DialogDescription>
               Select products and table number to create a new order.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
-             <div>
-              <Label htmlFor="tableNumber">Table Number</Label>
-              <Input id="tableNumber" type="number" placeholder="e.g. 5" className="mt-2" />
-            </div>
-            <div>
-              <Label>Products</Label>
-              <p className="text-sm text-muted-foreground">Product selection UI coming soon.</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button onClick={() => setIsAddOrderDialogOpen(false)}>Create Order</Button>
-          </DialogFooter>
+           <Form {...addOrderForm}>
+                <form onSubmit={addOrderForm.handleSubmit(onAddOrderSubmit)} className="space-y-4">
+                    <FormField
+                        control={addOrderForm.control}
+                        name="tableNumber"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Table Number</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="e.g., 5" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <div>
+                        <Label>Products</Label>
+                        <div className="space-y-4 mt-2">
+                        {fields.map((field, index) => (
+                            <div key={field.id} className="flex items-center gap-2">
+                                <FormField
+                                    control={addOrderForm.control}
+                                    name={`products.${index}.productId`}
+                                    render={({ field }) => (
+                                        <FormItem className="flex-1">
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a product" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {mockProducts.filter(p => p.available).map((product: Product) => (
+                                                        <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                             <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={addOrderForm.control}
+                                    name={`products.${index}.qty`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input type="number" placeholder="Qty" className="w-20" {...field} min={1}/>
+                                            </FormControl>
+                                             <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length <=1}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => append({ productId: '', qty: 1 })}
+                        >
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                        </Button>
+                    </div>
+
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline" onClick={() => addOrderForm.reset()}>Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit">Create Order</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
         </DialogContent>
       </Dialog>
 
@@ -302,3 +429,5 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    
