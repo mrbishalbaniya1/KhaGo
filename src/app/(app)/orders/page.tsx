@@ -515,7 +515,6 @@ export default function OrdersPage() {
         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell><Skeleton className="h-4 w-8" /></TableCell>
         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
         <TableCell><Skeleton className="h-4 w-48" /></TableCell>
         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
         <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
@@ -572,7 +571,6 @@ export default function OrdersPage() {
                 <TableHead>Order</TableHead>
                 <TableHead>Table</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Payment</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -598,18 +596,18 @@ export default function OrdersPage() {
                                 </Badge>
                               </button>
                             </TableCell>
-                             <TableCell>
-                              <button onClick={() => handleUpdatePaymentClick(order)}>
-                                <Badge variant="outline" className={`capitalize font-semibold border ${paymentStatusStyles[order.paymentStatus]}`}>
-                                    {order.paymentStatus}
-                                </Badge>
-                              </button>
-                            </TableCell>
                             <TableCell>
                                 {order.products.map(p => `${p.name} (x${p.qty})`).join(', ')}
                             </TableCell>
                             <TableCell>{format(order.createdAt, 'MMM d, yyyy p')}</TableCell>
-                            <TableCell className="text-right font-medium">NPR {order.totalPrice.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">
+                                <div className="font-medium">NPR {order.totalPrice.toFixed(2)}</div>
+                                <button onClick={() => handleUpdatePaymentClick(order)} className="mt-1">
+                                    <Badge variant="outline" className={`capitalize font-semibold border ${paymentStatusStyles[order.paymentStatus]}`}>
+                                        {order.paymentStatus}
+                                    </Badge>
+                                </button>
+                            </TableCell>
                             <TableCell>
                               <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -659,7 +657,7 @@ export default function OrdersPage() {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={8} className="text-center">
+                        <TableCell colSpan={7} className="text-center">
                             No orders found.
                         </TableCell>
                     </TableRow>
