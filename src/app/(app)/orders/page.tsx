@@ -1209,7 +1209,7 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="hidden">
+      <div className="absolute -left-[9999px] -top-[9999px]">
         {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
       </div>
     </>
