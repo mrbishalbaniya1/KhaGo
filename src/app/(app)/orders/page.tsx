@@ -406,8 +406,7 @@ export default function OrdersPage() {
         const [popoverOpen, setPopoverOpen] = useState(false);
       
         const filteredProducts = useMemo(() => {
-          if (!field.value?.name && typeof field.value !== 'string') return mockProducts;
-          const currentName = typeof field.value === 'string' ? field.value : field.value.name;
+          const currentName = field.value || '';
           if (!currentName) return mockProducts;
           return mockProducts.filter(p => p.name.toLowerCase().includes(currentName.toLowerCase()));
         }, [field.value]);
@@ -1100,5 +1099,7 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    
 
     
