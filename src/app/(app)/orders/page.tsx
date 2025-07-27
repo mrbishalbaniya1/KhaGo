@@ -555,7 +555,11 @@ export default function OrdersPage() {
                 paginatedOrders.length > 0 ? (
                     paginatedOrders.map((order) => (
                         <TableRow key={order.id}>
-                            <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
+                            <TableCell className="font-medium">
+                                <button onClick={() => handleViewClick(order)} className="hover:underline">
+                                    #{order.tokenNumber}
+                                </button>
+                            </TableCell>
                             <TableCell>{order.tableNumber || '-'}</TableCell>
                             <TableCell>{order.customerName || '-'}</TableCell>
                             <TableCell>
@@ -1319,3 +1323,4 @@ export default function OrdersPage() {
     </>
   );
 }
+
