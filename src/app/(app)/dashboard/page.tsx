@@ -10,17 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle, UserCheck, Users, ShieldQuestion } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Order, Product, Expense } from '@/lib/types';
+import type { Order, Product, Expense, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, limit, where } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/auth-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -30,15 +31,65 @@ const statusStyles: { [key: string]: string } = {
   paid: 'bg-gray-500/10 text-muted-foreground border-gray-500/20',
 };
 
+const StatCard = ({ title, value, icon: Icon, description, currency }: { title: string, value: string | number, icon: React.ElementType, description?: string, currency?: string }) => (
+ <Card>
+  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    <Icon className="h-4 w-4 text-muted-foreground" />
+  </CardHeader>
+  <CardContent>
+    <div className="text-2xl font-bold">
+        {currency && <span className="text-sm font-bold text-muted-foreground mr-1">{currency}</span>}
+        {value}
+    </div>
+    {description && <p className="text-xs text-muted-foreground">{description}</p>}
+  </CardContent>
+</Card>
+)
 
-export default function DashboardPage() {
+const StatCardSkeleton = () => (
+<Card>
+  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Skeleton className="h-4 w-2/3" />
+    <Skeleton className="h-4 w-4" />
+  </CardHeader>
+  <CardContent>
+    <Skeleton className="h-7 w-1/2 mb-2" />
+    <Skeleton className="h-3 w-full" />
+  </CardContent>
+</Card>
+)
+
+const RecentOrdersSkeleton = () => (
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Order</TableHead>
+      <TableHead>Table</TableHead>
+      <TableHead>Status</TableHead>
+      <TableHead className="text-right">Total</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {[...Array(5)].map((_, i) => (
+      <TableRow key={i}>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+        <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+);
+
+
+function ManagerDashboard() {
   const [isClient, setIsClient] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const { userRole } = useAuth();
-  const router = useRouter();
-  
+
   useEffect(() => {
     setIsClient(true);
     
@@ -64,70 +115,16 @@ export default function DashboardPage() {
         unsubExpenses();
     }
   }, []);
-
+  
   const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = orders.length;
   const totalExpenses = expenses.reduce((acc, expense) => acc + expense.amount, 0);
   const lowStockItems = products.filter(p => p.isStockManaged && p.stockQty < 30).length;
-
   const recentOrders = orders.slice(0, 5);
   const inventoryHighlights = products.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
-  
-  const StatCard = ({ title, value, icon: Icon, description, currency }: { title: string, value: string | number, icon: React.ElementType, description?: string, currency?: string }) => (
-     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
-            {currency && <span className="text-sm font-bold text-muted-foreground mr-1">{currency}</span>}
-            {value}
-        </div>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
-      </CardContent>
-    </Card>
-  )
-
-  const StatCardSkeleton = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-4 w-4" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-7 w-1/2 mb-2" />
-        <Skeleton className="h-3 w-full" />
-      </CardContent>
-    </Card>
-  )
-  
-  const RecentOrdersSkeleton = () => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Order</TableHead>
-          <TableHead>Table</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Total</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {[...Array(5)].map((_, i) => (
-          <TableRow key={i}>
-            <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-            <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-            <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-
 
   return (
-    <div className="flex flex-col gap-4">
+     <div className="flex flex-col gap-4">
        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {isClient ? <StatCard title="Total Revenue" value={totalRevenue.toFixed(2)} icon={DollarSign} currency="NPR" description="+20.1% from last month" /> : <StatCardSkeleton />}
         {isClient ? <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} description="+19% from last month" /> : <StatCardSkeleton />}
@@ -207,5 +204,98 @@ export default function DashboardPage() {
       </div>
 
     </div>
-  );
+  )
+}
+
+function SuperAdminDashboard() {
+  const [isClient, setIsClient] = useState(false);
+  const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+  const [totalManagers, setTotalManagers] = useState(0);
+
+  useEffect(() => {
+    setIsClient(true);
+
+    const pendingQuery = query(collection(db, 'users'), where('status', '==', 'pending'), where('role', '==', 'manager'));
+    const unsubPending = onSnapshot(pendingQuery, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+      setPendingUsers(usersData);
+    });
+
+    const managersQuery = query(collection(db, 'users'), where('role', '==', 'manager'));
+    const unsubManagers = onSnapshot(managersQuery, (snapshot) => {
+      setTotalManagers(snapshot.size);
+    });
+
+    return () => {
+      unsubPending();
+      unsubManagers();
+    }
+  }, []);
+
+  const recentPendingUsers = pendingUsers.slice(0, 5);
+
+  return (
+     <div className="flex flex-col gap-4">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {isClient ? <StatCard title="Pending Approvals" value={pendingUsers.length} icon={ShieldQuestion} description="Managers waiting for access" /> : <StatCardSkeleton />}
+        {isClient ? <StatCard title="Total Managers" value={totalManagers} icon={Users} description="Approved managers in the system" /> : <StatCardSkeleton />}
+      </div>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>Recent Pending Approvals</CardTitle>
+                <CardDescription>New managers awaiting for approval.</CardDescription>
+            </div>
+            <Button asChild size="sm" variant="outline">
+                <Link href="/admin">View All <ArrowUpRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+        </CardHeader>
+        <CardContent>
+            {!isClient ? <RecentOrdersSkeleton /> : (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Business Name</TableHead>
+                            <TableHead>Role</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {recentPendingUsers.map((user) => (
+                             <TableRow key={user.uid}>
+                                <TableCell>
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarImage src={user.avatar} alt={user.name || 'User'} />
+                                            <AvatarFallback>{user.name?.[0].toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="font-medium">{user.name}</div>
+                                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell>{user.businessName || 'N/A'}</TableCell>
+                                <TableCell className="capitalize">{user.role}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+
+export default function DashboardPage() {
+  const { userRole } = useAuth();
+  
+  if (userRole === 'superadmin') {
+      return <SuperAdminDashboard />;
+  }
+
+  return <ManagerDashboard />;
 }
