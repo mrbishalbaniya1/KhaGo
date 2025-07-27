@@ -43,6 +43,8 @@ export type Order = {
   totalPrice: number;
   notes?: string;
   createdAt: Date;
+  orderTakenBy?: string;
+  cashierName?: string;
 };
 
 export type Expense = {

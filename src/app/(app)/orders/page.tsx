@@ -1155,6 +1155,8 @@ export default function OrdersPage() {
                   <div><strong>Customer:</strong> {selectedOrder.customerName || "N/A"}</div>
                   <div><strong>Status:</strong> <span className="capitalize">{selectedOrder.status}</span></div>
                   <div><strong>Payment:</strong> <span className="capitalize">{selectedOrder.paymentStatus} ({selectedOrder.paymentMethod})</span></div>
+                  <div><strong>Order Taken By:</strong> {selectedOrder.orderTakenBy || "N/A"}</div>
+                  <div><strong>Cashier:</strong> {selectedOrder.cashierName || "N/A"}</div>
               </div>
               <Separator />
               <div className="space-y-2">
