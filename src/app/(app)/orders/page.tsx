@@ -84,7 +84,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { PrintReceipt } from '@/components/print-receipt';
-import { useReactToPrint } from 'react-to-print';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -158,10 +157,18 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
 
-  const receiptRef = useRef(null);
-  const handlePrint = useReactToPrint({
-    content: () => receiptRef.current,
-  });
+  const handlePrint = () => {
+    const printContent = document.getElementById('print-receipt');
+    if (printContent) {
+      const parent = printContent.parentElement;
+      if (parent) {
+        parent.classList.add('printable');
+        window.print();
+        parent.classList.remove('printable');
+      }
+    }
+  };
+
 
   useEffect(() => {
     setIsClient(true);
@@ -1164,32 +1171,26 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
       <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-                <DialogTitle>Print Receipt</DialogTitle>
-                <DialogDescription>
-                    Preview of the receipt for order #{selectedOrder?.tokenNumber}.
-                </DialogDescription>
-            </DialogHeader>
-            {/* The component for preview */}
-            <div className='mt-4'>
-                 {selectedOrder && <PrintReceipt order={selectedOrder} />}
-            </div>
-            {/* The component to be printed (hidden) */}
-            <div className="hidden">
-                 {selectedOrder && <PrintReceipt ref={receiptRef} order={selectedOrder} />}
-            </div>
-            <DialogFooter className="mt-4">
-              <DialogClose asChild>
-                  <Button variant="outline">Close</Button>
-              </DialogClose>
-              <Button onClick={handlePrint}>Print Receipt</Button>
+        <DialogContent className="max-w-md" id="print-receipt">
+          <DialogHeader>
+            <DialogTitle>Print Receipt</DialogTitle>
+            <DialogDescription>
+              Preview of the receipt for order #{selectedOrder?.tokenNumber}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {selectedOrder && <PrintReceipt order={selectedOrder} />}
+          </div>
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+            <Button onClick={handlePrint}>Print Receipt</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
   );
 }
-

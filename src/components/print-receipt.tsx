@@ -11,9 +11,9 @@ interface PrintReceiptProps {
   order: Order;
 }
 
-export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(({ order }, ref) => {
+export const PrintReceipt = ({ order }: PrintReceiptProps) => {
   return (
-    <div ref={ref} className="p-4 bg-white text-black text-sm font-sans">
+    <div className="p-4 bg-white text-black text-sm font-sans">
         <div className="text-center space-y-2 mb-6">
             <Icons.logo className="h-12 w-12 mx-auto text-black" />
             <h2 className="text-xl font-bold font-headline">CulinaryFlow</h2>
@@ -92,6 +92,6 @@ export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(
         </div>
     </div>
   );
-});
+};
 
 PrintReceipt.displayName = 'PrintReceipt';
