@@ -107,6 +107,7 @@ const orderProductSchema = z.object({
     name: z.string().min(1, 'Product name is required.'),
     qty: z.coerce.number().min(1, 'Quantity must be at least 1.'),
     price: z.coerce.number().nonnegative('Price must be a positive number.'),
+    productId: z.string().optional(), // Keep it optional for custom items
 });
 
 
@@ -147,6 +148,16 @@ export default function OrdersPage() {
   
   const baseOrderForm = useForm<z.infer<typeof orderSchema>>({
     resolver: zodResolver(orderSchema),
+    defaultValues: {
+      tableNumber: '',
+      customerName: '',
+      products: [{ name: '', qty: 1, price: 0, productId: '' }],
+      notes: '',
+      discount: '',
+      tip: '',
+      paymentMethod: 'pending',
+      paymentStatus: 'pending',
+    },
   });
 
   const addOrderForm = useForm<z.infer<typeof orderSchema>>({
@@ -154,7 +165,7 @@ export default function OrdersPage() {
     defaultValues: {
       tableNumber: '',
       customerName: '',
-      products: [{ name: '', qty: 1, price: 0 }],
+      products: [{ name: '', qty: 1, price: 0, productId: '' }],
       notes: '',
       discount: '',
       tip: '',
@@ -221,7 +232,7 @@ export default function OrdersPage() {
     const updatedProducts = values.products.map(p => {
         const productDetails = mockProducts.find(mp => mp.name === p.name);
         return {
-            productId: productDetails?.id || selectedOrder.products.find(op => op.name === p.name)?.productId || `custom-${Date.now()}`,
+            productId: p.productId || productDetails?.id || selectedOrder.products.find(op => op.name === p.name)?.productId || `custom-${Date.now()}`,
             name: p.name,
             qty: p.qty,
             price: p.price,
@@ -237,6 +248,10 @@ export default function OrdersPage() {
         ...o, 
         ...values,
         tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
+        customerName: values.customerName || '',
+        notes: values.notes || '',
+        discount: Number(values.discount || 0),
+        tip: Number(values.tip || 0),
         products: updatedProducts,
         subtotal,
         totalPrice,
@@ -251,14 +266,14 @@ export default function OrdersPage() {
   }
   
   const addProductToOrder = useCallback((product: Product, formType: 'add' | 'edit' = 'add') => {
+    const form = formType === 'add' ? addOrderForm : baseOrderForm;
     const currentUpdate = formType === 'add' ? update : editUpdate;
     const currentAppend = formType === 'add' ? append : editAppend;
-    const form = formType === 'add' ? addOrderForm : baseOrderForm;
-    
     const watchedProducts = form.getValues('products') || [];
 
+
     const existingProductIndex = watchedProducts.findIndex(
-      (field) => field.name === product.name
+      (field) => field.productId === product.id
     );
 
     if (existingProductIndex !== -1) {
@@ -269,9 +284,9 @@ export default function OrdersPage() {
       });
     } else {
        if (watchedProducts.length === 1 && watchedProducts[0].name === '') {
-        currentUpdate(0, { name: product.name, qty: 1, price: product.price });
+        currentUpdate(0, { name: product.name, qty: 1, price: product.price, productId: product.id });
       } else {
-        currentAppend({ name: product.name, qty: 1, price: product.price });
+        currentAppend({ name: product.name, qty: 1, price: product.price, productId: product.id });
       }
     }
   }, [update, editUpdate, append, editAppend, addOrderForm, baseOrderForm]);
@@ -303,7 +318,7 @@ export default function OrdersPage() {
         notes: order.notes || '',
         discount: order.discount || '',
         tip: order.tip || '',
-        products: order.products.map(p => ({ name: p.name, qty: p.qty, price: p.price }))
+        products: order.products.map(p => ({ name: p.name, qty: p.qty, price: p.price, productId: p.productId }))
     });
     setIsEditOrderDialogOpen(true);
   }
@@ -379,51 +394,49 @@ export default function OrdersPage() {
     );
   };
   
-  const ProductAutocomplete = ({form, index, field, formType = 'add'}: {form: any, index: number, field: any, formType?: 'add' | 'edit'}) => {
+  const ProductAutocomplete = ({ form, index, field, formType = 'add' }: { form: any, index: number, field: any, formType?: 'add' | 'edit' }) => {
+    const [open, setOpen] = useState(false);
     const productName = field.value || '';
     const filteredProducts = mockProducts.filter(p => p.name.toLowerCase().includes(productName.toLowerCase()));
 
     return (
-      <Popover open={suggestionIndex === index} onOpenChange={(isOpen) => setSuggestionIndex(isOpen ? index : null)}>
-        <PopoverAnchor>
-          <FormControl>
-            <Input
-              placeholder="Product Name"
-              {...field}
-              onFocus={() => setSuggestionIndex(index)}
-              onChange={(e) => {
-                field.onChange(e);
-                setSuggestionIndex(index);
-              }}
-            />
-          </FormControl>
-        </PopoverAnchor>
-        <PopoverContent className="w-[300px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-          <Command>
-            <CommandInput placeholder="Search product..." />
-            <CommandList>
-              <CommandEmpty>No product found.</CommandEmpty>
-              <CommandGroup>
-                {filteredProducts.map((product) => (
-                  <CommandItem
-                    key={product.id}
-                    onSelect={() => {
-                      const updateFn = formType === 'add' ? update : editUpdate;
-                      const watchedProducts = form.getValues('products');
-                      updateFn(index, { ...watchedProducts[index], name: product.name, price: product.price });
-                      setSuggestionIndex(null);
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Input
+                    placeholder="Product Name"
+                    {...field}
+                    onChange={(e) => {
+                        field.onChange(e);
+                        if (!open) setOpen(true);
                     }}
-                  >
-                    {product.name}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                />
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <Command>
+                    <CommandInput placeholder="Search product..." />
+                    <CommandList>
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                            {filteredProducts.map((product) => (
+                                <CommandItem
+                                    key={product.id}
+                                    onSelect={() => {
+                                        const updateFn = formType === 'add' ? update : editUpdate;
+                                        const watchedProducts = form.getValues('products');
+                                        updateFn(index, { ...watchedProducts[index], name: product.name, price: product.price, productId: product.id });
+                                        setOpen(false);
+                                    }}
+                                >
+                                    {product.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     )
-  }
+}
 
 
   const TableSkeleton = () => (
@@ -680,7 +693,7 @@ export default function OrdersPage() {
                                 variant="outline"
                                 size="sm"
                                 className="mt-2"
-                                onClick={() => append({ name: '', qty: 1, price: 0 })}
+                                onClick={() => append({ name: '', qty: 1, price: 0, productId: '' })}
                             >
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                             </Button>
@@ -901,7 +914,7 @@ export default function OrdersPage() {
                                 variant="outline"
                                 size="sm"
                                 className="mt-2"
-                                onClick={() => editAppend({ name: '', qty: 1, price: 0 })}
+                                onClick={() => editAppend({ name: '', qty: 1, price: 0, productId: '' })}
                             >
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Product
                             </Button>
