@@ -599,7 +599,7 @@ export default function OrdersPage() {
                             <TableCell>
                                 {order.products.map(p => `${p.name} (x${p.qty})`).join(', ')}
                             </TableCell>
-                            <TableCell>{format(order.createdAt, 'MMM d, yyyy')}</TableCell>
+                            <TableCell>{format(order.createdAt, 'MMM d, p')}</TableCell>
                             <TableCell className="text-right">
                                 <div className="font-medium">NPR {order.totalPrice.toFixed(2)}</div>
                                 <button onClick={() => handleUpdatePaymentClick(order)} className="mt-1">
@@ -1348,3 +1348,6 @@ export default function OrdersPage() {
 
     
 
+
+
+    
