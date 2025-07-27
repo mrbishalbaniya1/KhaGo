@@ -80,6 +80,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { PrintReceipt } from '@/components/print-receipt';
 
 const statusStyles: { [key: string]: string } = {
@@ -137,6 +139,7 @@ export default function OrdersPage() {
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
+  const [suggestionIndex, setSuggestionIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -250,25 +253,28 @@ export default function OrdersPage() {
     const currentFields = formType === 'add' ? fields : editFields;
     const currentUpdate = formType === 'add' ? update : editUpdate;
     const currentAppend = formType === 'add' ? append : editAppend;
+    const currentControl = formType === 'add' ? addOrderForm.control : baseOrderForm.control;
+    const watchedProducts = useWatch({ control: currentControl, name: 'products' }) || [];
 
-    const existingProductIndex = currentFields.findIndex(
-      (field) => 'name' in field && field.name === product.name
+
+    const existingProductIndex = watchedProducts.findIndex(
+      (field) => field.name === product.name
     );
 
     if (existingProductIndex !== -1) {
-      const existingProduct = currentFields[existingProductIndex];
+      const existingProduct = watchedProducts[existingProductIndex];
       currentUpdate(existingProductIndex, {
         ...existingProduct,
         qty: (existingProduct.qty || 0) + 1,
       });
     } else {
-       if (currentFields.length === 1 && 'name' in currentFields[0] && currentFields[0].name === '') {
+       if (watchedProducts.length === 1 && watchedProducts[0].name === '') {
         currentUpdate(0, { name: product.name, qty: 1, price: product.price });
       } else {
         currentAppend({ name: product.name, qty: 1, price: product.price });
       }
     }
-  }, [fields, editFields, append, editAppend, update, editUpdate]);
+  }, [fields, editFields, append, editAppend, update, editUpdate, addOrderForm, baseOrderForm]);
 
 
   const handleUpdateStatusClick = (order: Order) => {
@@ -367,6 +373,52 @@ export default function OrdersPage() {
         </div>
     );
   };
+  
+  const ProductAutocomplete = ({form, index, field, formType = 'add'}: {form: any, index: number, field: any, formType?: 'add' | 'edit'}) => {
+    const productName = useWatch({control: form.control, name: `products.${index}.name`});
+    const filteredProducts = mockProducts.filter(p => p.name.toLowerCase().includes(productName?.toLowerCase() || ''));
+    
+    return (
+       <Popover open={suggestionIndex === index} onOpenChange={(isOpen) => !isOpen && setSuggestionIndex(null)}>
+        <PopoverAnchor>
+          <FormControl>
+            <Input
+              placeholder="Product Name"
+              {...field}
+              onFocus={() => setSuggestionIndex(index)}
+              onChange={(e) => {
+                field.onChange(e);
+                setSuggestionIndex(index);
+              }}
+            />
+          </FormControl>
+        </PopoverAnchor>
+        <PopoverContent className="w-[300px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <Command>
+            <CommandInput placeholder="Search product..." />
+            <CommandList>
+              <CommandEmpty>No product found.</CommandEmpty>
+              <CommandGroup>
+                {filteredProducts.map((product) => (
+                  <CommandItem
+                    key={product.id}
+                    onSelect={() => {
+                      const updateFn = formType === 'add' ? update : editUpdate;
+                      updateFn(index, { name: product.name, price: product.price, qty: 1 });
+                      setSuggestionIndex(null);
+                    }}
+                  >
+                    {product.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    )
+  }
+
 
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
@@ -582,9 +634,7 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
-                                                    </FormControl>
+                                                    <ProductAutocomplete form={addOrderForm} index={index} field={field} formType='add' />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -805,9 +855,7 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
-                                                    </FormControl>
+                                                   <ProductAutocomplete form={baseOrderForm} index={index} field={field} formType='edit' />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -1014,3 +1062,5 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    
