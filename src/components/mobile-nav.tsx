@@ -19,11 +19,16 @@ interface MobileNavProps {
 export function MobileNav({ navItems }: MobileNavProps) {
   const pathname = usePathname();
 
+  // Note: The number of columns is hardcoded to 5.
+  // If you change the number of items in `mobileNavItems` in the layout,
+  // you must update the `grid-cols-*` class here as well.
+  const gridColsClass = `grid-cols-${navItems.length}`;
+
   return (
     <nav className="fixed bottom-4 left-4 right-4 z-50 md:hidden">
       <div className={cn(
         "grid items-stretch text-center bg-background/80 backdrop-blur-sm shadow-lg rounded-2xl border overflow-hidden",
-        `grid-cols-${navItems.length}`
+        "grid-cols-5" // Use a static class for Tailwind to correctly apply the grid layout.
         )}>
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
