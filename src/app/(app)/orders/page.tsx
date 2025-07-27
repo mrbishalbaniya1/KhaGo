@@ -55,7 +55,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import type { Order, Product } from '@/lib/types';
+import type { Order, Product, User } from '@/lib/types';
 import { format } from 'date-fns';
 import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
@@ -84,8 +84,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import QRCode from 'react-qr-code';
 import { PrintReceipt } from '@/components/print-receipt';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, Timestamp, writeBatch, query, where } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
+import { Combobox } from '@/components/ui/combobox';
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -143,13 +144,14 @@ const orderSchema = z.object({
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-  const { userData } = useAuth();
+  const { user, userData } = useAuth();
 
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
   const [isAddOrderDialogOpen, setIsAddOrderDialogOpen] = useState(false);
@@ -184,11 +186,23 @@ export default function OrdersPage() {
         setProducts(productsData);
     });
 
+    if (user) {
+        const q = query(collection(db, 'users'), where('role', '==', 'customer'), where('managerId', '==', user.uid));
+        const unsubCustomers = onSnapshot(q, (snapshot) => {
+            const customersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+            setCustomers(customersData);
+        });
+        return () => { unsubCustomers(); unsubOrders(); unsubProducts(); }
+    }
+
+
     return () => {
         unsubOrders();
         unsubProducts();
     }
-  }, []);
+  }, [user]);
+
+  const customerOptions = useMemo(() => customers.map(c => ({ value: c.name || '', label: c.name || '' })), [customers]);
 
   const handlePrint = () => {
     const printContent = document.getElementById('print-receipt');
@@ -787,7 +801,13 @@ export default function OrdersPage() {
                                     <FormItem>
                                         <FormLabel>Customer Name (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
+                                            <Combobox
+                                                options={customerOptions}
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                placeholder="Select or type customer..."
+                                                inputPlaceholder="e.g. Jane Doe"
+                                                />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -1002,14 +1022,20 @@ export default function OrdersPage() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
+                           <FormField
                                 control={baseOrderForm.control}
                                 name="customerName"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Customer Name (Optional)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
+                                            <Combobox
+                                                options={customerOptions}
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                placeholder="Select or type customer..."
+                                                inputPlaceholder="e.g. Jane Doe"
+                                                />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
