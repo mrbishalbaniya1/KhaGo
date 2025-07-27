@@ -38,12 +38,6 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const { userRole } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (userRole === 'superadmin') {
-      router.push('/admin');
-    }
-  }, [userRole, router]);
   
   useEffect(() => {
     setIsClient(true);
@@ -79,14 +73,6 @@ export default function DashboardPage() {
   const recentOrders = orders.slice(0, 5);
   const inventoryHighlights = products.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
   
-  if (userRole === 'superadmin') {
-    return (
-        <div className="flex h-full w-full items-center justify-center">
-            <p>Redirecting to admin panel...</p>
-        </div>
-    );
-  }
-
   const StatCard = ({ title, value, icon: Icon, description, currency }: { title: string, value: string | number, icon: React.ElementType, description?: string, currency?: string }) => (
      <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

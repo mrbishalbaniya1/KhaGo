@@ -78,6 +78,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
 
 const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
+const managerRoles = allRoles.filter(role => role === 'manager');
 
 
 export default function UsersPage() {
@@ -90,13 +91,22 @@ export default function UsersPage() {
   const { user, userRole } = useAuth();
 
   useEffect(() => {
-    if (!user || userRole !== 'manager') return;
+    if (!user) return;
 
-    const q = query(collection(db, 'users'), where('managerId', '==', user.uid));
+    let q;
+    if (userRole === 'superadmin') {
+        q = query(collection(db, 'users'), where('role', '==', 'manager'));
+    } else if (userRole === 'manager') {
+        q = query(collection(db, 'users'), where('managerId', '==', user.uid));
+    } else {
+        return;
+    }
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
       setUsers(usersData);
     });
+
     return () => unsubscribe();
   }, [user, userRole]);
 
@@ -179,13 +189,17 @@ export default function UsersPage() {
     }
   };
   
-  if (userRole !== 'manager') {
+  if (userRole !== 'manager' && userRole !== 'superadmin') {
       return (
           <div className="flex h-full w-full items-center justify-center">
-              <p>This page is for managers to manage their staff.</p>
+              <p>You do not have permission to view this page.</p>
           </div>
       );
   }
+
+  const pageTitle = userRole === 'superadmin' ? 'Managers' : 'Team Members';
+  const pageDescription = userRole === 'superadmin' ? 'Manage all restaurant managers.' : 'Manage your team members and their roles.';
+  const availableRoles = userRole === 'superadmin' ? managerRoles : employeeRoles;
 
 
   return (
@@ -193,93 +207,95 @@ export default function UsersPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Team Members</CardTitle>
-            <CardDescription>Manage your team members and their roles.</CardDescription>
+            <CardTitle>{pageTitle}</CardTitle>
+            <CardDescription>{pageDescription}</CardDescription>
           </div>
-          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Employee
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Employee</DialogTitle>
-                <DialogDescription>
-                  Fill in the details to invite a new employee.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...addUserForm}>
-                <form
-                  onSubmit={addUserForm.handleSubmit(onAddUserSubmit)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={addUserForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Hari Bahadur" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addUserForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="e.g., hari@example.com"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addUserForm.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {employeeRoles.map(role => (
-                              <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit">Add User</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          {userRole === 'manager' && (
+            <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                <DialogTrigger asChild>
+                <Button size="sm">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Employee
+                </Button>
+                </DialogTrigger>
+                <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New Employee</DialogTitle>
+                    <DialogDescription>
+                    Fill in the details to invite a new employee.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...addUserForm}>
+                    <form
+                    onSubmit={addUserForm.handleSubmit(onAddUserSubmit)}
+                    className="space-y-4"
+                    >
+                    <FormField
+                        control={addUserForm.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., Hari Bahadur" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={addUserForm.control}
+                        name="email"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                            <Input
+                                type="email"
+                                placeholder="e.g., hari@example.com"
+                                {...field}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={addUserForm.control}
+                        name="role"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            >
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {availableRoles.map(role => (
+                                <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <DialogFooter>
+                        <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit">Add User</Button>
+                    </DialogFooter>
+                    </form>
+                </Form>
+                </DialogContent>
+            </Dialog>
+          )}
         </CardHeader>
         <CardContent>
           <Table>
@@ -428,7 +444,7 @@ export default function UsersPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {employeeRoles.map(role => (
+                          {availableRoles.map(role => (
                               <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
                           ))}
                         </SelectContent>

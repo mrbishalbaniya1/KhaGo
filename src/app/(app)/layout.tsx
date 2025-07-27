@@ -45,7 +45,9 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: '/admin', label: 'Admin', icon: Shield },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin', label: 'Approvals', icon: Shield },
+    { href: '/users', label: 'Managers', icon: Users },
 ]
 
 const mobileNavItems = [
