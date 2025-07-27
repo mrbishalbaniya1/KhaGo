@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
 import { getAuth, signOut } from "firebase/auth";
-import { LogOut, User as UserIcon, Settings } from "lucide-react";
+import { LogOut, User as UserIcon, Settings, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function UserNav() {
@@ -81,6 +81,12 @@ export function UserNav() {
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
+            </DropdownMenuItem>
+          </Link>
+           <Link href="/users">
+            <DropdownMenuItem>
+              <Users className="mr-2 h-4 w-4" />
+              <span>Users</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
