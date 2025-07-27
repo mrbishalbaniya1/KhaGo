@@ -21,7 +21,6 @@ import {
   ClipboardList,
   Warehouse,
   Banknote,
-  User as UserIcon,
   Users,
   AreaChart,
   Package,
@@ -44,9 +43,9 @@ const navItems = [
 const mobileNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/orders', label: 'Orders', icon: ClipboardList },
+  { href: '/products', label: 'Products', icon: Package },
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
-  { href: '/profile', label: 'Profile', icon: UserIcon },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
