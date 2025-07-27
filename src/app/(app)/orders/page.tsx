@@ -650,7 +650,7 @@ export default function OrdersPage() {
                                     </Badge>
                                 </button>
                             </TableCell>
-                            <TableCell>{format((order.createdAt as Timestamp).toDate(), 'MMM d, p')}</TableCell>
+                            <TableCell>{format(order.createdAt as Date, 'MMM d, p')}</TableCell>
                             <TableCell className="text-right">
                                 <div className="font-medium">NPR {order.totalPrice.toFixed(2)}</div>
                                 <button onClick={() => handleUpdatePaymentClick(order)} className="mt-1">
