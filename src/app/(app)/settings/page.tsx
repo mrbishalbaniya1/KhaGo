@@ -1,6 +1,9 @@
 
 'use client';
 
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Card,
   CardContent,
@@ -22,8 +25,60 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ThemeSwitcher } from '@/components/theme-switcher';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { useEffect } from 'react';
+
+const businessInfoSchema = z.object({
+  businessName: z.string().min(1, 'Restaurant name is required.'),
+  address: z.string().min(1, 'Address is required.'),
+  mobileNumber: z.string().min(1, 'Contact number is required.'),
+});
 
 export default function SettingsPage() {
+  const { userData, user, userRole } = useAuth();
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof businessInfoSchema>>({
+    resolver: zodResolver(businessInfoSchema),
+    defaultValues: {
+      businessName: '',
+      address: '',
+      mobileNumber: '',
+    },
+  });
+
+  useEffect(() => {
+    if (userData) {
+      form.reset({
+        businessName: userData.businessName || '',
+        address: userData.address || '',
+        mobileNumber: userData.mobileNumber || '',
+      });
+    }
+  }, [userData, form]);
+
+  const onSubmit = async (values: z.infer<typeof businessInfoSchema>) => {
+    if (!user) return;
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, values);
+      toast({
+        title: 'Success',
+        description: 'Your business information has been updated.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update business information.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -76,27 +131,58 @@ export default function SettingsPage() {
           </div>
           
            {/* Business Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Business Information</h3>
-            <Separator />
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="restaurant-name">Restaurant Name</Label>
-                    <Input id="restaurant-name" defaultValue="CulinaryFlow" />
+          {userRole === 'manager' && (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <h3 className="text-lg font-medium">Business Information</h3>
+                <Separator />
+                <FormField
+                  control={form.control}
+                  name="businessName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Restaurant Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mobileNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <div className="flex justify-end pt-4">
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                      {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="restaurant-address">Address</Label>
-                    <Textarea id="restaurant-address" defaultValue="123 Main Street, Kathmandu, Nepal" />
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="restaurant-contact">Contact Number</Label>
-                    <Input id="restaurant-contact" defaultValue="+977-9800000000" />
-                </div>
-            </div>
-             <div className="flex justify-end pt-4">
-                <Button>Save Changes</Button>
-            </div>
-          </div>
+              </form>
+            </Form>
+          )}
 
         </CardContent>
       </Card>
