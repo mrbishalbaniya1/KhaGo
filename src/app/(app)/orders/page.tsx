@@ -147,6 +147,7 @@ export default function OrdersPage() {
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
@@ -449,7 +450,6 @@ export default function OrdersPage() {
   }
 
   const filteredOrders = useMemo(() => {
-    const allStatuses = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
     return orders
       .filter((order) => {
         const searchLower = searchTerm.toLowerCase();
@@ -462,8 +462,12 @@ export default function OrdersPage() {
       .filter((order) => {
         if (statusFilter === 'all') return true;
         return order.status === statusFilter;
+      })
+      .filter((order) => {
+        if (paymentStatusFilter === 'all') return true;
+        return order.paymentStatus === paymentStatusFilter;
       });
-  }, [orders, searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter, paymentStatusFilter]);
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
   const paginatedOrders = filteredOrders.slice(
@@ -538,17 +542,30 @@ export default function OrdersPage() {
               searchPlaceholder="Search by order, table, or customer..."
               showDateFilter={false}
           >
+            <div className="flex flex-col sm:flex-row gap-2">
               <Select value={statusFilter} onValueChange={(value) => { if(value) { setStatusFilter(value); setCurrentPage(1);} }}>
                   <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
-                      {['pending', 'preparing', 'ready', 'delivered', 'paid'].map(status => (
+                      {orderStatuses.map(status => (
                         <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
                       ))}
                   </SelectContent>
               </Select>
+               <Select value={paymentStatusFilter} onValueChange={(value) => { if(value) { setPaymentStatusFilter(value); setCurrentPage(1);} }}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Filter by payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">All Payments</SelectItem>
+                      {paymentStatuses.map(status => (
+                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+            </div>
           </TableToolbar>
         </CardHeader>
         <CardContent>
