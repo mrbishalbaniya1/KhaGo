@@ -6,6 +6,8 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
   Card,
   CardContent,
@@ -172,42 +174,17 @@ export default function OrdersPage() {
 
   const handleDownload = () => {
     if (receiptRef.current) {
-      const styles = Array.from(document.styleSheets)
-        .map((styleSheet) => {
-          try {
-            return Array.from(styleSheet.cssRules)
-              .map((rule) => rule.cssText)
-              .join('');
-          } catch (e) {
-            console.log('Access to stylesheet %s is denied. Skipping.', styleSheet.href);
-            return '';
-          }
-        })
-        .join('\n');
-
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Receipt</title>
-            <style>${styles}</style>
-          </head>
-          <body>
-            ${receiptRef.current.innerHTML}
-          </body>
-        </html>
-      `;
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `receipt-${selectedOrder?.tokenNumber}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        html2canvas(receiptRef.current).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF();
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`receipt-${selectedOrder?.tokenNumber}.pdf`);
+        });
     }
   };
+
 
   useEffect(() => {
     setIsClient(true);
