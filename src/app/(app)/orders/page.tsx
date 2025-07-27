@@ -79,6 +79,7 @@ const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'deli
 
 const orderSchema = z.object({
   tableNumber: z.coerce.number().min(1, 'Table number is required.'),
+  customerName: z.string().optional(),
   products: z.array(z.object({
     productId: z.string().min(1, 'Product is required.'),
     qty: z.coerce.number().min(1, 'Quantity must be at least 1.'),
@@ -106,6 +107,7 @@ export default function OrdersPage() {
     resolver: zodResolver(orderSchema),
     defaultValues: {
       tableNumber: undefined,
+      customerName: '',
       products: [{ productId: '', qty: 1 }],
     },
   });
@@ -132,6 +134,7 @@ export default function OrdersPage() {
         id: `o${orders.length + 1}`,
         tokenNumber: `A${(Math.floor(Math.random() * 900) + 100)}`,
         tableNumber: values.tableNumber,
+        customerName: values.customerName,
         products: newOrderProducts.map(({price, ...rest}) => rest),
         totalPrice: totalPrice,
         status: 'pending',
@@ -171,7 +174,8 @@ export default function OrdersPage() {
         const searchLower = searchTerm.toLowerCase();
         return (
           order.tokenNumber.toLowerCase().includes(searchLower) ||
-          order.tableNumber.toString().includes(searchLower)
+          order.tableNumber.toString().includes(searchLower) ||
+          (order.customerName && order.customerName.toLowerCase().includes(searchLower))
         );
       })
       .filter((order) => {
@@ -212,7 +216,7 @@ export default function OrdersPage() {
                   setSearchTerm(term);
                   setCurrentPage(1);
               }}
-              searchPlaceholder="Search by order or table number..."
+              searchPlaceholder="Search by order, table, or customer..."
               showDateFilter={false}
           >
               <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
@@ -234,6 +238,7 @@ export default function OrdersPage() {
               <TableRow>
                 <TableHead>Order</TableHead>
                 <TableHead>Table</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Date</TableHead>
@@ -248,6 +253,7 @@ export default function OrdersPage() {
                         <TableRow key={order.id}>
                             <TableCell className="font-medium">#{order.tokenNumber}</TableCell>
                             <TableCell>{order.tableNumber}</TableCell>
+                            <TableCell>{order.customerName || '-'}</TableCell>
                             <TableCell>
                                 <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
                                     {order.status}
@@ -277,7 +283,7 @@ export default function OrdersPage() {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={7} className="text-center">
+                        <TableCell colSpan={8} className="text-center">
                             No orders found.
                         </TableCell>
                     </TableRow>
@@ -317,19 +323,34 @@ export default function OrdersPage() {
           </DialogHeader>
            <Form {...addOrderForm}>
                 <form onSubmit={addOrderForm.handleSubmit(onAddOrderSubmit)} className="space-y-4">
-                    <FormField
-                        control={addOrderForm.control}
-                        name="tableNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Table Number</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="e.g., 5" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={addOrderForm.control}
+                          name="tableNumber"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Table Number</FormLabel>
+                                  <FormControl>
+                                      <Input type="number" placeholder="e.g., 5" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                       <FormField
+                          control={addOrderForm.control}
+                          name="customerName"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Customer Name (Optional)</FormLabel>
+                                  <FormControl>
+                                      <Input placeholder="e.g., Jane Doe" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                    </div>
                     <div>
                         <Label>Products</Label>
                         <div className="space-y-4 mt-2">
@@ -429,5 +450,3 @@ export default function OrdersPage() {
     </>
   );
 }
-
-    

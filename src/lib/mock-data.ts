@@ -42,11 +42,11 @@ export const mockProducts: Product[] = [
 ];
 
 export const mockOrders: Order[] = [
-  { id: 'o1', tableNumber: 5, tokenNumber: 'A001', products: [{ productId: 'p1', name: 'Chicken Momo', qty: 2 }, { productId: 'p3', name: 'Vegetable Thukpa', qty: 1 }], status: 'preparing', totalPrice: 700.00, createdAt: new Date(Date.now() - 3600000 * 1) },
+  { id: 'o1', tableNumber: 5, tokenNumber: 'A001', customerName: 'John Doe', products: [{ productId: 'p1', name: 'Chicken Momo', qty: 2 }, { productId: 'p3', name: 'Vegetable Thukpa', qty: 1 }], status: 'preparing', totalPrice: 700.00, createdAt: new Date(Date.now() - 3600000 * 1) },
   { id: 'o2', tableNumber: 2, tokenNumber: 'A002', products: [{ productId: 'p2', name: 'Veg Chowmein', qty: 1 }], status: 'pending', totalPrice: 180.00, createdAt: new Date(Date.now() - 3600000 * 0.5) },
-  { id: 'o3', tableNumber: 8, tokenNumber: 'A003', products: [{ productId: 'p6', name: 'Nepali Thali Set', qty: 1 }, { productId: 'p4', name: 'Juju Dhau', qty: 1 }], status: 'ready', totalPrice: 700.00, createdAt: new Date(Date.now() - 3600000 * 2) },
+  { id: 'o3', tableNumber: 8, tokenNumber: 'A003', customerName: 'Jane Smith', products: [{ productId: 'p6', name: 'Nepali Thali Set', qty: 1 }, { productId: 'p4', name: 'Juju Dhau', qty: 1 }], status: 'ready', totalPrice: 700.00, createdAt: new Date(Date.now() - 3600000 * 2) },
   { id: 'o4', tableNumber: 3, tokenNumber: 'A004', products: [{ productId: 'p1', name: 'Chicken Momo', qty: 1 }], status: 'delivered', totalPrice: 250.00, createdAt: new Date(Date.now() - 3600000 * 3) },
-  { id: 'o5', tableNumber: 1, tokenNumber: 'A005', products: [{ productId: 'p5', name: 'Aloo Sandheko', qty: 2 }], status: 'paid', totalPrice: 240.00, createdAt: new Date(Date.now() - 3600000 * 4) },
+  { id: 'o5', tableNumber: 1, tokenNumber: 'A005', customerName: 'Alex Johnson', products: [{ productId: 'p5', name: 'Aloo Sandheko', qty: 2 }], status: 'paid', totalPrice: 240.00, createdAt: new Date(Date.now() - 3600000 * 4) },
 ];
 
 export const mockExpenses: Expense[] = [

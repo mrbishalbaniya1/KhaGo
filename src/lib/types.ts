@@ -31,6 +31,7 @@ export type Order = {
   id: string;
   tableNumber: number;
   tokenNumber: string;
+  customerName?: string;
   products: { productId: string; name: string; qty: number }[];
   status: 'pending' | 'preparing' | 'ready' | 'delivered' | 'paid';
   totalPrice: number;
