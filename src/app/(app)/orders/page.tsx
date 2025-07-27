@@ -520,9 +520,11 @@ export default function OrdersPage() {
                             <TableCell>{order.tableNumber || '-'}</TableCell>
                             <TableCell>{order.customerName || '-'}</TableCell>
                             <TableCell>
+                              <button onClick={() => handleUpdateStatusClick(order)}>
                                 <Badge variant="outline" className={`capitalize font-semibold border ${statusStyles[order.status]}`}>
                                     {order.status}
                                 </Badge>
+                              </button>
                             </TableCell>
                              <TableCell>
                                 <Badge variant="outline" className={`capitalize font-semibold border ${paymentStatusStyles[order.paymentStatus]}`}>
