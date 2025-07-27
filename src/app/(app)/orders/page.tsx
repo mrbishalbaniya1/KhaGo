@@ -90,8 +90,16 @@ const statusStyles: { [key: string]: string } = {
   paid: 'bg-gray-500/10 text-muted-foreground border-gray-500/20',
 };
 
+const paymentStatusStyles: { [key: string]: string } = {
+  pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  paid: 'bg-green-500/10 text-green-500 border-green-500/20',
+  refunded: 'bg-red-500/10 text-red-500 border-red-500/20',
+};
+
 const ITEMS_PER_PAGE = 10;
 const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
+const paymentMethods: Order['paymentMethod'][] = ['cash', 'online', 'pending'];
+const paymentStatuses: Order['paymentStatus'][] = ['pending', 'paid', 'refunded'];
 
 const orderProductSchema = z.object({
     productId: z.string().min(1, 'Product is required.'),
@@ -106,6 +114,8 @@ const orderSchema = z.object({
   notes: z.string().optional(),
   discount: z.coerce.number().optional(),
   tip: z.coerce.number().optional(),
+  paymentMethod: z.enum(paymentMethods),
+  paymentStatus: z.enum(paymentStatuses),
 });
 
 
@@ -144,6 +154,8 @@ export default function OrdersPage() {
       notes: '',
       discount: 0,
       tip: 0,
+      paymentMethod: 'pending',
+      paymentStatus: 'pending',
     },
   });
 
@@ -186,6 +198,8 @@ export default function OrdersPage() {
         notes: values.notes,
         status: 'pending',
         createdAt: new Date(),
+        paymentMethod: values.paymentMethod,
+        paymentStatus: values.paymentStatus,
     };
 
     setOrders([newOrder, ...orders]);
@@ -362,6 +376,8 @@ export default function OrdersPage() {
         <TableCell><Skeleton className="h-4 w-8" /></TableCell>
         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
         <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
         <TableCell><Skeleton className="h-4 w-48" /></TableCell>
         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
         <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
@@ -406,6 +422,8 @@ export default function OrdersPage() {
                 <TableHead>Table</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead>Method</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -425,6 +443,12 @@ export default function OrdersPage() {
                                     {order.status}
                                 </Badge>
                             </TableCell>
+                             <TableCell>
+                                <Badge variant="outline" className={`capitalize font-semibold border ${paymentStatusStyles[order.paymentStatus]}`}>
+                                    {order.paymentStatus}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="capitalize">{order.paymentMethod}</TableCell>
                             <TableCell>
                                 {order.products.map(p => `${p.name} (x${p.qty})`).join(', ')}
                             </TableCell>
@@ -476,7 +500,7 @@ export default function OrdersPage() {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={8} className="text-center">
+                        <TableCell colSpan={10} className="text-center">
                             No orders found.
                         </TableCell>
                     </TableRow>
@@ -667,6 +691,54 @@ export default function OrdersPage() {
                             </div>
                         </div>
                         <WatchedForm control={addOrderForm.control} />
+                        <div className="space-y-4 rounded-lg bg-muted/50 p-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={addOrderForm.control}
+                              name="paymentMethod"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Payment Method</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select method" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {paymentMethods.map(method => (
+                                        <SelectItem key={method} value={method} className="capitalize">{method}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={addOrderForm.control}
+                              name="paymentStatus"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Payment Status</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {paymentStatuses.map(status => (
+                                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
                         </div>
                     </div>
 
@@ -843,6 +915,54 @@ export default function OrdersPage() {
                             </div>
                         </div>
                         <WatchedForm control={baseOrderForm.control} />
+                         <div className="space-y-4 rounded-lg bg-muted/50 p-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={baseOrderForm.control}
+                              name="paymentMethod"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Payment Method</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select method" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {paymentMethods.map(method => (
+                                        <SelectItem key={method} value={method} className="capitalize">{method}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={baseOrderForm.control}
+                              name="paymentStatus"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Payment Status</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {paymentStatuses.map(status => (
+                                        <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
                         </div>
                     </div>
 
