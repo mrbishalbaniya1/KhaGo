@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil, Eye } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -151,6 +151,7 @@ export default function OrdersPage() {
   const [isAddOrderDialogOpen, setIsAddOrderDialogOpen] = useState(false);
   const [isEditOrderDialogOpen, setIsEditOrderDialogOpen] = useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const [isViewOrderDialogOpen, setIsViewOrderDialogOpen] = useState(false);
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order['status']>('pending');
@@ -238,7 +239,7 @@ export default function OrdersPage() {
     addOrderForm.reset({
       tableNumber: '',
       customerName: '',
-      products: [],
+      products: [{ name: '', qty: 1, price: 0, productId: '' }],
       notes: '',
       discount: '',
       tip: '',
@@ -319,6 +320,11 @@ export default function OrdersPage() {
     setNewStatus(order.status);
     setIsUpdateStatusDialogOpen(true);
   };
+  
+  const handleViewClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsViewOrderDialogOpen(true);
+  }
 
   const handleUpdateStatus = () => {
     if (!selectedOrder) return;
@@ -415,66 +421,6 @@ export default function OrdersPage() {
         </div>
     );
   };
-
-  const ProductAutocomplete = ({ form, index, field, formType }: { form: any, index: number, field: any, formType: 'add' | 'edit'}) => {
-    const [open, setOpen] = useState(false);
-    const [inputValue, setInputValue] = useState(field.value || '');
-    const updateFn = formType === 'add' ? update : editUpdate;
-    
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setInputValue(value);
-        form.setValue(`products.${index}.name`, value);
-        if (!open) setOpen(true);
-    };
-
-    const handleSelect = (product: Product) => {
-        setInputValue(product.name);
-        updateFn(index, { name: product.name, qty: form.getValues(`products.${index}.qty`) || 1, price: product.price, productId: product.id });
-        setOpen(false);
-    };
-
-    const suggestions = useMemo(() => {
-        if (!inputValue) return [];
-        return mockProducts.filter(p => p.name.toLowerCase().includes(inputValue.toLowerCase()));
-    }, [inputValue]);
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Input
-                    placeholder="Product Name"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    className="w-full"
-                />
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0">
-                <Command>
-                    <CommandInput 
-                        placeholder="Search product..." 
-                        value={inputValue}
-                        onValueChange={setInputValue}
-                    />
-                    <CommandList>
-                        <CommandEmpty>No product found. You can add a custom one.</CommandEmpty>
-                        <CommandGroup>
-                            {suggestions.map(product => (
-                                <CommandItem
-                                    key={product.id}
-                                    onSelect={() => handleSelect(product)}
-                                    value={product.name}
-                                >
-                                    {product.name}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-    );
-};
   
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
@@ -571,6 +517,9 @@ export default function OrdersPage() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => handleViewClick(order)}>
+                                        <Eye className="mr-2 h-4 w-4" /> View
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleEditClick(order)}>
                                         <Pencil className="mr-2 h-4 w-4" /> Edit
                                     </DropdownMenuItem>
@@ -704,7 +653,7 @@ export default function OrdersPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
-                                                        <ProductAutocomplete form={addOrderForm} index={index} field={field} formType="add" />
+                                                        <Input placeholder="Product Name" {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -927,7 +876,7 @@ export default function OrdersPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
-                                                      <ProductAutocomplete form={baseOrderForm} index={index} field={field} formType="edit" />
+                                                      <Input placeholder="Product Name" {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -1093,6 +1042,88 @@ export default function OrdersPage() {
                     </form>
                 </Form>
            </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isViewOrderDialogOpen} onOpenChange={setIsViewOrderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>
+              A read-only view of order #{selectedOrder?.tokenNumber}.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><strong>Table:</strong> {selectedOrder.tableNumber || "N/A"}</div>
+                  <div><strong>Customer:</strong> {selectedOrder.customerName || "N/A"}</div>
+                  <div><strong>Status:</strong> <span className="capitalize">{selectedOrder.status}</span></div>
+                  <div><strong>Payment:</strong> <span className="capitalize">{selectedOrder.paymentStatus} ({selectedOrder.paymentMethod})</span></div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="font-semibold">Items</h4>
+                 <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedOrder.products.map(p => (
+                      <TableRow key={p.productId}>
+                        <TableCell>{p.name}</TableCell>
+                        <TableCell className="text-center">{p.qty}</TableCell>
+                        <TableCell className="text-right">{(p.price).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{(p.price * p.qty).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <Separator />
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>NPR {selectedOrder.subtotal.toFixed(2)}</span>
+                </div>
+                {selectedOrder.discount && (
+                    <div className="flex justify-between">
+                        <span>Discount</span>
+                        <span>- NPR {selectedOrder.discount.toFixed(2)}</span>
+                    </div>
+                )}
+                 {selectedOrder.tip && (
+                    <div className="flex justify-between">
+                        <span>Tip</span>
+                        <span>+ NPR {selectedOrder.tip.toFixed(2)}</span>
+                    </div>
+                )}
+                 <div className="flex justify-between font-bold text-base border-t pt-2 mt-2">
+                    <span>Total</span>
+                    <span>NPR {selectedOrder.totalPrice.toFixed(2)}</span>
+                </div>
+              </div>
+               {selectedOrder.notes && (
+                <>
+                  <Separator />
+                   <div className="text-sm">
+                      <h4 className="font-semibold mb-1">Notes:</h4>
+                      <p className="text-muted-foreground">{selectedOrder.notes}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+           <DialogFooter>
+            <DialogClose asChild>
+              <Button>Close</Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
