@@ -394,50 +394,6 @@ export default function OrdersPage() {
     );
   };
   
-  const ProductAutocomplete = ({ form, index, field, formType = 'add' }: { form: any, index: number, field: any, formType?: 'add' | 'edit' }) => {
-    const [open, setOpen] = useState(false);
-    const productName = field.value || '';
-    const filteredProducts = mockProducts.filter(p => p.name.toLowerCase().includes(productName.toLowerCase()));
-
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Input
-                    placeholder="Product Name"
-                    {...field}
-                    onChange={(e) => {
-                        field.onChange(e);
-                        if (!open) setOpen(true);
-                    }}
-                />
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <Command>
-                    <CommandInput placeholder="Search product..." />
-                    <CommandList>
-                        <CommandEmpty>No product found.</CommandEmpty>
-                        <CommandGroup>
-                            {filteredProducts.map((product) => (
-                                <CommandItem
-                                    key={product.id}
-                                    onSelect={() => {
-                                        const updateFn = formType === 'add' ? update : editUpdate;
-                                        const watchedProducts = form.getValues('products');
-                                        updateFn(index, { ...watchedProducts[index], name: product.name, price: product.price, productId: product.id });
-                                        setOpen(false);
-                                    }}
-                                >
-                                    {product.name}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-    )
-}
-
 
   const TableSkeleton = () => (
     [...Array(ITEMS_PER_PAGE)].map((_, i) => (
@@ -653,7 +609,9 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <ProductAutocomplete form={addOrderForm} index={index} field={field} formType='add' />
+                                                    <FormControl>
+                                                        <Input placeholder="Product Name" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -874,7 +832,9 @@ export default function OrdersPage() {
                                             name={`products.${index}.name`}
                                             render={({ field }) => (
                                                 <FormItem>
-                                                   <ProductAutocomplete form={baseOrderForm} index={index} field={field} formType='edit' />
+                                                    <FormControl>
+                                                        <Input placeholder="Product Name" {...field} />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
