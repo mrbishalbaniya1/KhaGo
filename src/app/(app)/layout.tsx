@@ -41,12 +41,6 @@ const navItems = [
   { href: '/users', label: 'Users', icon: Users },
 ];
 
-const bottomNavItems = [
-    { href: '/profile', label: 'My Account', icon: UserIcon },
-    { href: '/settings', label: 'Settings', icon: Settings },
-];
-
-
 const mobileNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/orders', label: 'Orders', icon: ClipboardList },
@@ -112,23 +106,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   isActive={pathname.startsWith(item.href)}
                   tooltip={item.label}
                   size="lg"
-                >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-           <SidebarMenu>
-            {bottomNavItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={item.label}
-                   size="lg"
                 >
                   <Link href={item.href}>
                     <item.icon />
