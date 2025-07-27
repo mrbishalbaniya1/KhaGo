@@ -41,7 +41,7 @@ const navItems = [
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
   { href: '/reports', label: 'Reports', icon: AreaChart },
-  { href: '/users', label: 'Users', icon: Users },
+  { href: '/customers', label: 'Customers', icon: Users },
 ];
 
 const adminNavItems = [

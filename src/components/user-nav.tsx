@@ -20,7 +20,7 @@ import { LogOut, User as UserIcon, Settings, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function UserNav() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -83,10 +83,10 @@ export function UserNav() {
               <span>Settings</span>
             </DropdownMenuItem>
           </Link>
-           <Link href="/users">
+           <Link href={userRole === 'superadmin' ? "/users" : "/customers"}>
             <DropdownMenuItem>
               <Users className="mr-2 h-4 w-4" />
-              <span>Users</span>
+              <span>{userRole === 'superadmin' ? 'Users' : 'Customers'}</span>
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
