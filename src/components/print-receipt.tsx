@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -7,12 +6,15 @@ import type { Order } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { format } from 'date-fns';
 import { Icons } from './icons';
+import QRCode from 'react-qr-code';
 
 interface PrintReceiptProps {
   order: Order;
 }
 
 export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(({ order }, ref) => {
+  const qrValue = `order_id:${order.id},total:${order.totalPrice.toFixed(2)}`;
+  
   return (
     <div ref={ref} className="p-4 bg-white text-black text-sm font-sans">
         <div className="text-center space-y-2 mb-6">
@@ -87,6 +89,11 @@ export const PrintReceipt = React.forwardRef<HTMLDivElement, PrintReceiptProps>(
                 </div>
             </>
         )}
+        
+        <div className="mt-6 flex flex-col items-center justify-center space-y-2">
+          <QRCode value={qrValue} size={100} />
+          <p className="text-xs">Scan to pay</p>
+        </div>
 
         <div className="text-center mt-6">
             <p>Thank you for your visit!</p>
