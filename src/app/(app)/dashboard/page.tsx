@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle, UserCheck, Users, ShieldQuestion } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle, UserCheck, Users, ShieldQuestion, TrendingUp } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order, Product, Expense, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -119,7 +119,7 @@ function ManagerDashboard() {
   const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = orders.length;
   const totalExpenses = expenses.reduce((acc, expense) => acc + expense.amount, 0);
-  const lowStockItems = products.filter(p => p.isStockManaged && p.stockQty < 30).length;
+  const totalProfit = totalRevenue - totalExpenses;
   const recentOrders = orders.slice(0, 5);
   const inventoryHighlights = products.filter(p => p.isStockManaged && p.stockQty < 40).slice(0, 5);
 
@@ -129,7 +129,7 @@ function ManagerDashboard() {
         {isClient ? <StatCard title="Total Revenue" value={totalRevenue.toFixed(2)} icon={DollarSign} currency="NPR" description="+20.1% from last month" /> : <StatCardSkeleton />}
         {isClient ? <StatCard title="Total Orders" value={totalOrders} icon={ShoppingCart} description="+19% from last month" /> : <StatCardSkeleton />}
         {isClient ? <StatCard title="Total Expenses" value={totalExpenses.toFixed(2)} icon={MinusCircle} currency="NPR" description="+2% from last month" /> : <StatCardSkeleton />}
-        {isClient ? <StatCard title="Low Stock Items" value={lowStockItems} icon={AlertTriangle} description="Items needing attention" /> : <StatCardSkeleton />}
+        {isClient ? <StatCard title="Total Profit" value={totalProfit.toFixed(2)} icon={TrendingUp} currency="NPR" description="Revenue minus expenses" /> : <StatCardSkeleton />}
       </div>
       
       <div className="grid gap-4 lg:grid-cols-3">
