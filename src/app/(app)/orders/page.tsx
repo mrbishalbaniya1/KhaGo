@@ -102,7 +102,7 @@ const paymentStatusStyles: { [key: string]: string } = {
 };
 
 const ITEMS_PER_PAGE = 10;
-const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
+const orderStatuses: Order['status'][] = ['pending', 'preparing', 'ready', 'delivered'];
 const paymentMethods: Order['paymentMethod'][] = ['cash', 'online', 'pending'];
 const paymentStatuses: Order['paymentStatus'][] = ['pending', 'paid', 'refunded'];
 
@@ -394,6 +394,7 @@ export default function OrdersPage() {
   }
 
   const filteredOrders = useMemo(() => {
+    const allStatuses = ['pending', 'preparing', 'ready', 'delivered', 'paid'];
     return orders
       .filter((order) => {
         const searchLower = searchTerm.toLowerCase();
@@ -488,7 +489,7 @@ export default function OrdersPage() {
                   </SelectTrigger>
                   <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
-                      {orderStatuses.map(status => (
+                      {['pending', 'preparing', 'ready', 'delivered', 'paid'].map(status => (
                         <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
                       ))}
                   </SelectContent>
