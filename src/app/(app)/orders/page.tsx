@@ -514,7 +514,6 @@ export default function OrdersPage() {
       <TableRow key={i}>
         <TableCell><Skeleton className="h-4 w-12" /></TableCell>
         <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-        <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
         <TableCell><Skeleton className="h-4 w-48" /></TableCell>
         <TableCell><Skeleton className="h-4 w-32" /></TableCell>
         <TableCell className="text-right"><Skeleton className="h-4 w-24 ml-auto" /></TableCell>
@@ -1225,7 +1224,7 @@ export default function OrdersPage() {
 
 
       <Dialog open={isUpdateStatusDialogOpen} onOpenChange={setIsUpdateStatusDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
             <DialogDescription>
@@ -1233,17 +1232,19 @@ export default function OrdersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="status">New Status</Label>
-            <Select value={newStatus} onValueChange={(value: Order['status']) => setNewStatus(value)}>
-                <SelectTrigger id="status" className="w-full mt-2">
-                    <SelectValue placeholder="Select a status" />
-                </SelectTrigger>
-                <SelectContent>
-                    {orderStatuses.map(status => (
-                      <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <Label>New Status</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+                {orderStatuses.map(status => (
+                    <Button 
+                        key={status} 
+                        variant={newStatus === status ? 'default' : 'outline'}
+                        onClick={() => setNewStatus(status)}
+                        className="capitalize w-full"
+                    >
+                        {status}
+                    </Button>
+                ))}
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
