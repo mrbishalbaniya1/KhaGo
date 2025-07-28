@@ -1,6 +1,6 @@
 
 import type { Metadata } from 'next';
-import { Belleza, Alegreya } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
@@ -14,13 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-const headlineFont = Belleza({
-  subsets: ['latin'],
-  variable: '--font-headline',
-  weight: '400'
-});
-
-const bodyFont = Alegreya({
+const font = Inter({
   subsets: ['latin'],
   variable: '--font-body',
 });
@@ -32,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${bodyFont.variable} ${headlineFont.variable} font-body antialiased`}>
+      <body className={`${font.variable} font-body antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
