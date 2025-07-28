@@ -5,19 +5,19 @@ export const Icons = {
   logo: (props: SVGProps<SVGSVGElement>) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
+      viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="3"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
     >
-      {/* Bowl */}
-      <path d="M14 40a20 20 0 0 0 36 0H14z" />
-      {/* Steam */}
-      <path d="M24 20s2-8 8-8 8 8 8 8" />
-      <path d="M22 28s2-8 8-8 8 8 8 8" />
+      <path d="M6 12h12" />
+      <path d="M6 12v6a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-6" />
+      <path d="M6 12V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v6" />
+      <path d="m8 8 2 2" />
+      <path d="m14 8 2 2" />
     </svg>
   ),
 

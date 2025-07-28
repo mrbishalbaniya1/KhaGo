@@ -10,7 +10,8 @@ export const metadata: Metadata = {
   description: 'Restaurant Management App by Bishal Baniya',
   manifest: '/manifest.json',
   icons: {
-    apple: '/apple-touch-icon.png',
+    apple: '/apple-touch-icon.svg',
+    icon: '/favicon.svg',
   },
 };
 
