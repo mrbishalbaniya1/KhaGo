@@ -7,6 +7,10 @@ import { ThemeProvider } from '@/components/theme-provider';
 export const metadata: Metadata = {
   title: 'KhaGo',
   description: 'Restaurant Management App by Firebase Studio',
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 const mainFont = Inter({
