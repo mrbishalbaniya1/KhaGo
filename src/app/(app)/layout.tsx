@@ -34,6 +34,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -65,12 +66,38 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const { user, loading, userRole } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      toast({
+        title: 'Back Online',
+        description: 'Your internet connection has been restored.',
+      });
+    };
+
+    const handleOffline = () => {
+      toast({
+        title: 'You are offline',
+        description: 'Please check your internet connection. Some features may not be available.',
+        variant: 'destructive',
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
 
 
   if (loading || !user) {
