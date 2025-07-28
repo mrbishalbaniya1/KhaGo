@@ -771,7 +771,7 @@ export default function OrdersPage() {
         <DialogTrigger asChild>
           <Button
             size="icon"
-            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
+            className="fixed bottom-8 right-8 z-10 h-16 w-16 rounded-full shadow-lg"
             onClick={() => {
               addOrderForm.reset({
                   tableNumber: '',
