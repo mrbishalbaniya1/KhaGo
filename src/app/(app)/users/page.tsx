@@ -77,7 +77,7 @@ import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
 import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
-import { getApp, getApps, initializeApp, deleteApp } from 'firebase/app';
+import { getApp, initializeApp, deleteApp } from 'firebase/app';
 
 
 const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
@@ -168,6 +168,8 @@ export default function UsersPage() {
 
     const managerId = userRole === 'manager' ? user.uid : userData.managerId;
     if (!managerId && userRole !== 'superadmin') return;
+    
+    let success = false;
 
     try {
       let newUser: Partial<User> = {
@@ -183,9 +185,9 @@ export default function UsersPage() {
       if (userRole === 'manager') {
         newUser.managerId = managerId;
         await addDoc(collection(db, 'users'), newUser);
+        success = true;
       } else if (userRole === 'superadmin' && 'businessName' in values && 'password' in values) {
         
-        // Create a temporary secondary Firebase app to create user without logging them in
         const tempAppName = `temp-app-${Date.now()}`;
         const mainAppConfig = getApp().options;
         const tempApp = initializeApp(mainAppConfig, tempAppName);
@@ -200,25 +202,31 @@ export default function UsersPage() {
             newUser.username = await generateUniqueUsername(values.businessName);
 
             await setDoc(doc(db, 'users', newAuthUser.uid), newUser);
+            success = true;
+        } catch (error: any) {
+            console.error(error);
+            let message = 'Failed to add user.';
+            if (error.code === 'auth/email-already-in-use') {
+                message = 'This email is already registered.';
+            }
+            toast({ title: 'Error', description: message, variant: 'destructive' });
         } finally {
             await deleteApp(tempApp);
         }
       }
 
-      toast({
-        title: 'User Added',
-        description: `${values.name} has been added successfully.`,
-      });
-      addUserForm.reset();
-      addManagerForm.reset();
-      setIsAddUserOpen(false);
+      if (success) {
+          toast({
+            title: 'User Added',
+            description: `${values.name} has been added successfully.`,
+          });
+          addUserForm.reset();
+          addManagerForm.reset();
+          setIsAddUserOpen(false);
+      }
     } catch (error: any) {
       console.error(error);
-      let message = 'Failed to add user.';
-      if (error.code === 'auth/email-already-in-use') {
-        message = 'This email is already registered.';
-      }
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      toast({ title: 'Error', description: 'An unexpected error occurred.', variant: 'destructive' });
     }
   };
 
