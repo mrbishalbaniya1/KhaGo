@@ -630,7 +630,7 @@ export default function OrdersPage() {
               searchPlaceholder="Search by order, table, or customer..."
               showDateFilter={false}
           >
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Select value={statusFilter} onValueChange={(value) => { if(value) { setStatusFilter(value); setCurrentPage(1);} }}>
                   <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Filter by status" />
