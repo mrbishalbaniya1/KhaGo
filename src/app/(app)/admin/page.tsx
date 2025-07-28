@@ -85,18 +85,6 @@ export default function AdminPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Admin Panel</CardTitle>
-          <CardDescription>
-            Super administrative tools and settings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>Welcome, Super Admin! This is where you can manage critical aspects of the application.</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Pending Manager Approvals</CardTitle>
           <CardDescription>
             The following managers have signed up and are awaiting approval.
