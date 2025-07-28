@@ -165,7 +165,7 @@ export default function OrdersPage() {
   const [paymentDetails, setPaymentDetails] = useState<{method: Order['paymentMethod'], status: Order['paymentStatus']}>({method: 'pending', status: 'pending'});
   const receiptRef = useRef<HTMLDivElement>(null);
   
-  const quickMenuItems = useMemo(() => products.filter(p => p.popularityScore >= 8), [products]);
+  const quickMenuItems = useMemo(() => products.filter(p => p.available), [products]);
 
   useEffect(() => {
     setIsClient(true);
