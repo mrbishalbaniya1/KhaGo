@@ -87,6 +87,9 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, Timestamp, writeBatch, query, where } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { Combobox } from '@/components/ui/combobox';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 const statusStyles: { [key: string]: string } = {
   pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
@@ -152,6 +155,10 @@ export default function OrdersPage() {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const { user, userData } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isMobile = useIsMobile();
+
 
   const [isUpdateStatusDialogOpen, setIsUpdateStatusDialogOpen] = useState(false);
   const [isAddOrderDialogOpen, setIsAddOrderDialogOpen] = useState(false);
@@ -166,6 +173,13 @@ export default function OrdersPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
   
   const quickMenuItems = useMemo(() => products.filter(p => p.available), [products]);
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+        setIsAddOrderDialogOpen(true);
+        router.replace('/orders', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     setIsClient(true);
@@ -771,7 +785,7 @@ export default function OrdersPage() {
         <DialogTrigger asChild>
           <Button
             size="icon"
-            className="fixed bottom-8 right-8 z-10 h-16 w-16 rounded-full shadow-lg"
+            className="fixed bottom-8 right-8 z-10 h-16 w-16 rounded-full shadow-lg hidden md:flex"
             onClick={() => {
               addOrderForm.reset({
                   tableNumber: '',

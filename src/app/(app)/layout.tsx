@@ -28,6 +28,7 @@ import {
   Package,
   Settings,
   Shield,
+  PlusCircle,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from '@/components/mobile-nav';
@@ -88,7 +89,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
              <Icons.logo className="h-8 w-8 text-primary" />
              <span className="font-headline text-xl font-bold tracking-tight">CulinaryFlow</span>
            </Link>
-          <UserNav />
+           <div className="flex items-center gap-2">
+             {pathname.startsWith('/orders') && (
+                 <Button size="icon" variant="ghost" asChild>
+                    <Link href="/orders?create=true">
+                        <PlusCircle />
+                        <span className="sr-only">Add Order</span>
+                    </Link>
+                 </Button>
+             )}
+            <UserNav />
+           </div>
         </header>
         <main className="flex-1 overflow-auto p-4 pb-24">{children}</main>
         <MobileNav navItems={mobileNavItems} />
