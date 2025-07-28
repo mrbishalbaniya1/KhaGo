@@ -58,6 +58,7 @@ import { TablePagination } from '@/components/ui/table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const transactionSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -76,6 +77,15 @@ export default function InventoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+        setIsDialogOpen(true);
+        router.replace('/inventory', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
       const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
@@ -192,7 +202,91 @@ export default function InventoryPage() {
               setCurrentPage(1);
             }}
             searchPlaceholder="Search by product name or reason..."
-          />
+          >
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="w-full sm:w-auto">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Transaction
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Transaction</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below to add a new stock transaction.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="productId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Product</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a product" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {stockManagedProducts.map(p => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="qtyChange"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantity Change</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="e.g., -10 or 20" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="reason"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reason</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a reason" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="stock-in">Stock-In (Purchase)</SelectItem>
+                              <SelectItem value="usage">Usage (Sales)</SelectItem>
+                              <SelectItem value="spoilage">Spoilage</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline" onClick={() => form.reset()}>Cancel</Button>
+                      </DialogClose>
+                      <Button type="submit">Add Transaction</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+           </TableToolbar>
         </CardHeader>
         <CardContent>
           <Table>
@@ -243,92 +337,8 @@ export default function InventoryPage() {
           />
         </CardFooter>
       </Card>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-           <Button
-            size="icon"
-            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
-          >
-            <PlusCircle className="h-8 w-8" />
-            <span className="sr-only">Add Transaction</span>
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Transaction</DialogTitle>
-            <DialogDescription>
-              Fill in the details below to add a new stock transaction.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="productId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a product" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {stockManagedProducts.map(p => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="qtyChange"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity Change</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="e.g., -10 or 20" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="reason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a reason" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="stock-in">Stock-In (Purchase)</SelectItem>
-                        <SelectItem value="usage">Usage (Sales)</SelectItem>
-                        <SelectItem value="spoilage">Spoilage</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline" onClick={() => form.reset()}>Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Add Transaction</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
+
+    

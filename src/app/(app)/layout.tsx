@@ -81,6 +81,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       )
   }
 
+  const addActionLinks: { [key:string]: string} = {
+      '/orders': '/orders?create=true',
+      '/products': '/products?create=true',
+      '/inventory': '/inventory?create=true',
+      '/expenses': '/expenses?create=true',
+  }
+
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen">
@@ -90,13 +97,15 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
              <span className="font-headline text-xl font-bold tracking-tight">CulinaryFlow</span>
            </Link>
            <div className="flex items-center gap-2">
-             {pathname.startsWith('/orders') && (
-                 <Button size="icon" variant="ghost" asChild>
-                    <Link href="/orders?create=true">
-                        <PlusCircle />
-                        <span className="sr-only">Add Order</span>
-                    </Link>
-                 </Button>
+             {Object.keys(addActionLinks).map(path => 
+                pathname.startsWith(path) && (
+                    <Button key={path} size="icon" variant="ghost" asChild>
+                        <Link href={addActionLinks[path]}>
+                            <PlusCircle />
+                            <span className="sr-only">Add</span>
+                        </Link>
+                    </Button>
+                )
              )}
             <UserNav />
            </div>
@@ -173,3 +182,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </AuthProvider>
   );
 }
+
+    

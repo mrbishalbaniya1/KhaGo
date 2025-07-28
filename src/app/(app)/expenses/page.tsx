@@ -78,6 +78,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const expenseSchema = z.object({
   category: z.string().min(1, 'Category is required'),
@@ -98,6 +99,15 @@ export default function ExpensesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+        setIsAddDialogOpen(true);
+        router.replace('/expenses', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     setIsClient(true);
@@ -325,7 +335,7 @@ export default function ExpensesPage() {
               </div>
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm">
+                  <Button size="sm" className="w-full sm:w-auto">
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Add Expense
                   </Button>
@@ -501,3 +511,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    

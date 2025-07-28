@@ -78,6 +78,7 @@ import { TablePagination } from '@/components/ui/table-pagination';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -100,6 +101,15 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+        setIsAddDialogOpen(true);
+        router.replace('/products', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
@@ -354,7 +364,35 @@ export default function ProductsPage() {
             }}
             searchPlaceholder="Search by product name or category..."
             showDateFilter={false}
-          />
+          >
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button size="sm" className="w-full sm:w-auto">
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Add Product
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                    <DialogTitle>Add New Product</DialogTitle>
+                    <DialogDescription>
+                    Fill in the details below to add a new product to your catalog.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
+                    <ProductFormFields control={form.control} />
+                    <DialogFooter>
+                        <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit">Add Product</Button>
+                    </DialogFooter>
+                    </form>
+                </Form>
+                </DialogContent>
+            </Dialog>
+           </TableToolbar>
         </CardHeader>
         <CardContent>
           <Table>
@@ -445,38 +483,6 @@ export default function ProductsPage() {
         </CardFooter>
       </Card>
 
-      {/* Add Product Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogTrigger asChild>
-           <Button
-            size="icon"
-            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
-          >
-            <PlusCircle className="h-8 w-8" />
-            <span className="sr-only">Add Product</span>
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add New Product</DialogTitle>
-            <DialogDescription>
-              Fill in the details below to add a new product to your catalog.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
-              <ProductFormFields control={form.control} />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Add Product</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
       {/* Edit Product Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
@@ -502,3 +508,5 @@ export default function ProductsPage() {
     </>
   );
 }
+
+    
