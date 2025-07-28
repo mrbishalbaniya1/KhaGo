@@ -1,91 +1,122 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
+    // --- Functions ---
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.email == 'apeuninepal.com@gmail.com';
+    }
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email == 'apeuninepal.com@gmail.com';
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isApproved(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.status == 'approved';
     }
 
     function getUserData(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function isManager(userId) {
+      let userData = getUserData(userId);
+      return userData.role == 'manager';
     }
 
-    function isApproved() {
-      return isSignedIn() && getUserData(request.auth.uid).status == 'approved';
+    function isEmployee(userId) {
+        let userData = getUserData(userId);
+        return userData.role in ['waiter', 'cook', 'employee', 'cashier'];
     }
 
-    // --- User Collection Rules ---
+    function isManagedBy(userId, managerId) {
+        let userData = getUserData(userId);
+        return userData.managerId == managerId;
+    }
 
+    // --- Rules ---
     match /users/{userId} {
-      allow create: if isSignedIn() && isOwner(userId);
-
+      // READ:
+      // - SuperAdmins can read any user.
+      // - A user can read their own profile.
+      // - A manager can read the profile of their employees/customers.
+      // - An employee can read their own manager's profile.
       allow read: if isSignedIn() && (
         isSuperAdmin() ||
         isOwner(userId) ||
-        // Manager can read their own employees
-        (getUserData(request.auth.uid).role == 'manager' && getUserData(userId).managerId == request.auth.uid) ||
-        // Employee can read their own manager's profile
-        (getUserData(request.auth.uid).managerId != null && userId == getUserData(request.auth.uid).managerId)
+        (isManager(request.auth.uid) && isManagedBy(userId, request.auth.uid)) ||
+        (isEmployee(request.auth.uid) && userId == getUserData(request.auth.uid).managerId)
       );
 
+      // LIST:
+      // - SuperAdmins can list all managers.
+      // - Managers can list their own team members and customers.
+      allow list: if isSignedIn() && (
+        isSuperAdmin() ||
+        isManager(request.auth.uid)
+      );
+
+      // CREATE:
+      // - A user can create their own document during signup.
+      allow create: if isSignedIn() && isOwner(userId);
+
+      // UPDATE:
+      // - SuperAdmins can update any user.
+      // - A user can update their own profile.
+      // - Managers can update their team members.
       allow update: if isSignedIn() && (
         isSuperAdmin() ||
         isOwner(userId) ||
-        // Manager can update their own employees
-        (getUserData(request.auth.uid).role == 'manager' && getUserData(userId).managerId == request.auth.uid)
+        (isManager(request.auth.uid) && isManagedBy(userId, request.auth.uid))
       );
       
+      // DELETE:
+      // - SuperAdmins can delete any user.
+      // - Managers can delete their team members.
       allow delete: if isSignedIn() && (
         isSuperAdmin() ||
-        // Manager can delete their own employees
-        (getUserData(request.auth.uid).role == 'manager' && getUserData(userId).managerId == request.auth.uid)
+        (isManager(request.auth.uid) && isManagedBy(userId, request.auth.uid))
       );
     }
     
+    // Look-up table for checking if an email is already in use by a manager.
     match /users_by_email/{email} {
       allow read, write: if isSuperAdmin();
     }
-    
-    // --- Business Data Collections Rules ---
-    
-    function isManagerOfResource() {
-      // For create operations, check incoming data
-      let data = request.method == 'create' ? request.resource.data : resource.data;
-      return getUserData(request.auth.uid).role == 'manager' && request.auth.uid == data.managerId;
+
+    function managerScopeAuth(managerId) {
+      return isSignedIn() &&
+             isApproved(request.auth.uid) &&
+             (
+               (isManager(request.auth.uid) && request.auth.uid == managerId) ||
+               (isEmployee(request.auth.uid) && getUserData(request.auth.uid).managerId == managerId)
+             );
     }
     
-    function isEmployeeOfResource() {
-       // For create operations, check incoming data
-      let data = request.method == 'create' ? request.resource.data : resource.data;
-      return getUserData(request.auth.uid).managerId == data.managerId;
+    // Scoped rules for business-specific data.
+    match /orders/{docId} {
+      allow read, write: if managerScopeAuth(resource.data.managerId);
+      allow create: if managerScopeAuth(request.resource.data.managerId);
     }
 
-    match /orders/{orderId} {
-      allow read, write: if isApproved() && (isManagerOfResource() || isEmployeeOfResource());
-    }
-    
-    match /products/{productId} {
-      allow read, write: if isApproved() && (isManagerOfResource() || isEmployeeOfResource());
+    match /products/{docId} {
+      allow read, write: if managerScopeAuth(resource.data.managerId);
+      allow create: if managerScopeAuth(request.resource.data.managerId);
     }
 
-    match /expenses/{expenseId} {
-      allow read, write: if isApproved() && (isManagerOfResource() || isEmployeeOfResource());
+    match /expenses/{docId} {
+      allow read, write: if managerScopeAuth(resource.data.managerId);
+      allow create: if managerScopeAuth(request.resource.data.managerId);
     }
-    
-    match /inventory/{inventoryId} {
-      allow read, write: if isApproved() && (isManagerOfResource() || isEmployeeOfResource());
+
+    match /inventory/{docId} {
+      allow read, write: if managerScopeAuth(resource.data.managerId);
+      allow create: if managerScopeAuth(request.resource.data.managerId);
     }
   }
 }
