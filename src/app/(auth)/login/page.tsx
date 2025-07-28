@@ -263,7 +263,7 @@ export default function LoginPage() {
         <span className="font-headline text-2xl font-bold tracking-tight">KhaGo</span>
       </div>
        <div className="w-full max-w-md space-y-4">
-        {showApprovalMessage && ! (activeTab === 'signup' && signupStep === 3) && (
+        {showApprovalMessage && (
           <Alert variant="default" className="bg-amber-100 border-amber-300 text-amber-800">
             <AlertTriangle className="h-4 w-4 !text-amber-800" />
             <AlertTitle>Account Pending Approval</AlertTitle>
@@ -342,7 +342,7 @@ export default function LoginPage() {
                 {signupStep === 1 && (
                   <>
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">Create an Account (Step 1/3)</CardTitle>
+                        <CardTitle className="text-2xl">Create an Account (Step 1/2)</CardTitle>
                         <CardDescription>
                         Sign up as a manager. Your account will require admin approval.
                         </CardDescription>
@@ -419,7 +419,7 @@ export default function LoginPage() {
                 {signupStep === 2 && (
                     <>
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">Business Information (Step 2/3)</CardTitle>
+                        <CardTitle className="text-2xl">Business Information (Step 2/2)</CardTitle>
                         <CardDescription>
                             Please provide some details about your business.
                         </CardDescription>
@@ -477,7 +477,7 @@ export default function LoginPage() {
                 {signupStep === 3 && (
                     <>
                       <CardHeader className="text-center">
-                          <CardTitle className="text-2xl">Submission Complete (Step 3/3)</CardTitle>
+                          <CardTitle className="text-2xl">Submission Complete</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                            <Alert variant="default" className="bg-green-100 border-green-300 text-green-800">
