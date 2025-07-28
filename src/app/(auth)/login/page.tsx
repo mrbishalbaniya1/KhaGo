@@ -327,9 +327,6 @@ export default function LoginPage() {
                   Sign in with Google
                 </Button>
               </CardContent>
-              <CardFooter className="flex justify-center text-sm">
-                  <p>For demo, use `sita.sharma@khago.np` and password `password`</p>
-              </CardFooter>
             </Card>
           </TabsContent>
           <TabsContent value="signup">
