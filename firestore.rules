@@ -1,81 +1,103 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if a user is a superadmin
-    function isSuperAdmin(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'superadmin';
+    // ======== Helper Functions ========
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isSuperAdmin() {
+      // Check for a specific email and a custom claim if you set one
+      return request.auth.token.email == 'apeuninepal.com@gmail.com';
     }
 
-    // Helper function to get the role of the requesting user
-    function getRole(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    // Check if the requesting user is a manager for a given managerId
+    function isTheManager(managerId) {
+        return request.auth.uid == managerId;
+    }
+
+    // Check if the requesting user is an employee of a given managerId
+    function isEmployeeOf(managerId) {
+        return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == managerId;
     }
     
-    // Helper function to check if the user is a manager or an employee of that manager
-    function isManagerOrEmployee(userId, resourceManagerId) {
-       let userDoc = get(/databases/$(database)/documents/users/$(userId)).data;
-       return (userDoc.role == 'manager' && userId == resourceManagerId) || (userDoc.role != 'manager' && userDoc.managerId == resourceManagerId);
+    // Combined check for manager or their employee
+    function isManagerOrEmployeeOf(managerId) {
+        return isTheManager(managerId) || isEmployeeOf(managerId);
     }
     
-    // USERS collection
+    // Check if the user trying to be read/written has a specific manager
+    function isUserManagedBy(userId, managerId) {
+        return exists(/databases/$(database)/documents/users/$(userId)) &&
+               get(/databases/$(database)/documents/users/$(userId)).data.managerId == managerId;
+    }
+
+    // ======== Rules for Users Collection ========
+    
     match /users/{userId} {
       // READ:
-      // - Any authenticated user can read their own document.
-      // - A superadmin can read any user document.
-      // - A manager can read the documents of their employees and customers.
-      allow read: if request.auth != null && (
+      // 1. SuperAdmins can read any user profile.
+      // 2. Users can read their own profile.
+      // 3. Managers can read the profiles of their own employees and customers.
+      allow read: if isSignedIn() && (
+        isSuperAdmin() ||
         request.auth.uid == userId ||
-        isSuperAdmin(request.auth.uid) ||
-        (getRole(request.auth.uid) == 'manager' && get(/databases/$(database)/documents/users/$(userId)).data.managerId == request.auth.uid)
+        isUserManagedBy(userId, request.auth.uid)
+      );
+        
+      // CREATE:
+      // 1. New users can create their own document during signup.
+      // 2. SuperAdmins can create manager users.
+      // 3. Managers can create employees/customers under them.
+      allow create: if isSignedIn() && (
+          (request.auth.uid == userId) ||
+          isSuperAdmin() ||
+          (request.resource.data.managerId == request.auth.uid)
       );
 
-      // CREATE:
-      // - Any authenticated user can create their own user document (for signup).
-      // - A manager can create an employee or customer document.
-      // - A superadmin can create a manager document.
-      allow create: if request.auth != null && (
-        request.auth.uid == userId ||
-        (getRole(request.auth.uid) == 'manager' && request.resource.data.managerId == request.auth.uid) ||
-        isSuperAdmin(request.auth.uid)
-      );
-      
       // UPDATE:
-      // - Any authenticated user can update their own document.
-      // - A superadmin can update any user document.
-      // - A manager can update their employees/customers.
-      allow update: if request.auth != null && (
+      // 1. SuperAdmins can update any user.
+      // 2. Users can update their own profile.
+      // 3. Managers can update their own employees/customers.
+      allow update: if isSignedIn() && (
+        isSuperAdmin() ||
         request.auth.uid == userId ||
-        isSuperAdmin(request.auth.uid) ||
-        (getRole(request.auth.uid) == 'manager' && resource.data.managerId == request.auth.uid)
+        isUserManagedBy(userId, request.auth.uid)
       );
 
       // DELETE:
-      // - A superadmin can delete any user.
-      // - A manager can delete their employees/customers.
-      allow delete: if request.auth != null && (
-        isSuperAdmin(request.auth.uid) ||
-        (getRole(request.auth.uid) == 'manager' && resource.data.managerId == request.auth.uid)
+      // 1. SuperAdmins can delete any user.
+      // 2. Managers can delete their own employees/customers.
+      allow delete: if isSignedIn() && (
+        isSuperAdmin() ||
+        isUserManagedBy(userId, request.auth.uid)
       );
     }
     
-    match /users_by_email/{email} {
-      allow read, write: if request.auth != null;
-    }
-
-    // All other business-related collections
+    // ======== Rules for Manager-Scoped Collections ========
+    // This single rule applies to: orders, products, expenses, inventory
+    
     match /{collection}/{docId} {
-      // READ, WRITE (CREATE, UPDATE, DELETE)
-      // - Allow if the user is a superadmin.
-      // - Allow if the user is the manager of the resource, or an employee of that manager.
-      // This rule applies to: orders, products, expenses, inventory
-      allow read, write: if request.auth != null && (
-        isSuperAdmin(request.auth.uid) ||
-        isManagerOrEmployee(request.auth.uid, resource.data.managerId)
-      )
-      where collection in ['orders', 'products', 'expenses', 'inventory'];
+        // ALLOW LIST/READ/WRITE if:
+        // 1. The user is a SuperAdmin.
+        // 2. The user is the manager of the data or an employee of that manager.
+        allow list, read, write: if isSignedIn() && (
+            isSuperAdmin() ||
+            (request.query.limit <= 100 && isManagerOrEmployeeOf(request.query.managerId)) || // For list queries
+            isManagerOrEmployeeOf(resource.data.managerId) // For get/update/delete
+        );
+        
+        // ALLOW CREATE if:
+        // 1. The user is a SuperAdmin.
+        // 2. The user is the manager or an employee, and the new document's managerId is correct.
+        allow create: if isSignedIn() && (
+            isSuperAdmin() ||
+            isManagerOrEmployeeOf(request.resource.data.managerId)
+        );
     }
   }
 }
