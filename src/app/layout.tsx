@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import { Belleza, Alegreya } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'KhaGo',
+  title: 'CulinaryFlow',
   description: 'Restaurant Management App by Firebase Studio',
   manifest: '/manifest.json',
   icons: {
@@ -13,14 +13,15 @@ export const metadata: Metadata = {
   },
 };
 
-const mainFont = Inter({
-  subsets: ['latin'],
-  variable: '--font-body',
-});
-
-const headlineFont = Plus_Jakarta_Sans({
+const headlineFont = Belleza({
   subsets: ['latin'],
   variable: '--font-headline',
+  weight: '400'
+});
+
+const bodyFont = Alegreya({
+  subsets: ['latin'],
+  variable: '--font-body',
 });
 
 export default function RootLayout({
@@ -30,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${mainFont.variable} ${headlineFont.variable} font-body antialiased`}>
+      <body className={`${bodyFont.variable} ${headlineFont.variable} font-body antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

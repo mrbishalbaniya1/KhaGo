@@ -6,32 +6,17 @@ export const Icons = {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
       fill="none"
-      stroke="#10B981" // Emerald green
-      strokeWidth="2.5"
+      stroke="currentColor"
+      strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
     >
-      {/* Motion lines */}
-      <line x1="5" y1="24" x2="15" y2="24" />
-      <line x1="5" y1="30" x2="12" y2="30" />
-      <line x1="5" y1="18" x2="10" y2="18" />
-
       {/* Bowl */}
-      <path d="M20 34c0 9 7 16 16 16s16-7 16-16H20z" />
-
-      {/* Steaming dome */}
-      <path d="M36 14a8 8 0 0 0-8 8v2h16v-2a8 8 0 0 0-8-8z" />
-
-      {/* Fork */}
-      <path d="M48 16l-6 8" />
-      <line x1="48" y1="16" x2="50" y2="12" />
-      <line x1="50" y1="12" x2="52" y2="16" />
-      <line x1="52" y1="16" x2="54" y2="12" />
-
-      {/* Steam lines */}
-      <path d="M30 10c0-2 2-2 2-4s-2-2-2-4" />
-      <path d="M38 10c0-2 2-2 2-4s-2-2-2-4" />
+      <path d="M14 40a20 20 0 0 0 36 0H14z" />
+      {/* Steam */}
+      <path d="M26 24c0-4.42 3.58-8 8-8s8 3.58 8 8" />
+      <path d="M26 32c0-4.42 3.58-8 8-8s8 3.58 8 8" />
     </svg>
   ),
 

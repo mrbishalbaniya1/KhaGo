@@ -11,7 +11,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
        <div className="absolute top-8 left-8 flex items-center gap-2">
         <Icons.logo className="h-8 w-8 text-primary" />
-        <span className="font-headline text-2xl font-bold tracking-tight">KhaGo</span>
+        <span className="font-headline text-2xl font-bold tracking-tight">CulinaryFlow</span>
       </div>
       {/* The component that uses searchParams is wrapped in Suspense. */}
       <Suspense fallback={<LoginSkeleton />}>
