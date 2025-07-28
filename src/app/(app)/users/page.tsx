@@ -76,7 +76,9 @@ import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, initializeApp, deleteApp } from 'firebase/auth';
+import { getApp, getApps } from 'firebase/app';
+
 
 const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
 const managerRoles = allRoles.filter(role => role === 'manager');
@@ -163,10 +165,9 @@ export default function UsersPage() {
 
   const onAddUserSubmit = async (values: z.infer<typeof userSchema | typeof addManagerSchema>) => {
     if (!user || !userData) return;
-    
+
     const managerId = userRole === 'manager' ? user.uid : userData.managerId;
     if (!managerId && userRole !== 'superadmin') return;
-
 
     try {
       let newUser: Partial<User> = {
@@ -181,18 +182,27 @@ export default function UsersPage() {
 
       if (userRole === 'manager') {
         newUser.managerId = managerId;
-        // Logic to create an employee without auth for now.
-        // In a real app, you would likely send an invitation or create a login.
         await addDoc(collection(db, 'users'), newUser);
       } else if (userRole === 'superadmin' && 'businessName' in values && 'password' in values) {
-          const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-          const newAuthUser = userCredential.user;
-          
-          newUser.uid = newAuthUser.uid;
-          newUser.businessName = values.businessName;
-          newUser.username = await generateUniqueUsername(values.businessName);
+        
+        // Create a temporary secondary Firebase app to create user without logging them in
+        const tempAppName = `temp-app-${Date.now()}`;
+        const mainAppConfig = getApp().options;
+        const tempApp = initializeApp(mainAppConfig, tempAppName);
+        const tempAuth = getAuth(tempApp);
 
-          await setDoc(doc(db, 'users', newAuthUser.uid), newUser);
+        try {
+            const userCredential = await createUserWithEmailAndPassword(tempAuth, values.email, values.password);
+            const newAuthUser = userCredential.user;
+            
+            newUser.uid = newAuthUser.uid;
+            newUser.businessName = values.businessName;
+            newUser.username = await generateUniqueUsername(values.businessName);
+
+            await setDoc(doc(db, 'users', newAuthUser.uid), newUser);
+        } finally {
+            await deleteApp(tempApp);
+        }
       }
 
       toast({
@@ -211,6 +221,7 @@ export default function UsersPage() {
       toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
+
 
   const onEditUserSubmit = async (values: z.infer<typeof userSchema>) => {
     if (!selectedUser) return;
@@ -641,5 +652,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    
