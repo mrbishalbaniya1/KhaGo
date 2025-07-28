@@ -38,7 +38,7 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
   }, [value])
   
   const handleSelect = (currentValue: string) => {
-    const newValue = currentValue === value ? "" : currentValue
+    const newValue = currentValue === inputValue ? "" : currentValue
     onChange(newValue)
     setInputValue(newValue)
     setOpen(false)
@@ -48,11 +48,6 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
       const newInputValue = e.target.value;
       setInputValue(newInputValue);
       onChange(newInputValue);
-      if (newInputValue) {
-          setOpen(true);
-      } else {
-          setOpen(false);
-      }
   }
 
   const filteredOptions = options.filter(option => option.label.toLowerCase().includes(inputValue.toLowerCase()));
@@ -66,12 +61,14 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
             onChange={handleInputChange} 
             placeholder={inputPlaceholder}
             className="w-full"
+            onClick={() => setOpen(true)}
             />
           <Button
             variant="ghost"
             role="combobox"
             aria-expanded={open}
             className="absolute right-0 top-0 h-full px-2"
+            onClick={() => setOpen((prev) => !prev)}
           >
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -80,9 +77,9 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
           <CommandList>
-            {filteredOptions.length === 0 && !inputValue ? (
+            {filteredOptions.length === 0 && inputValue && (
                 <CommandEmpty>No customer found.</CommandEmpty>
-            ) : null}
+            )}
             <CommandGroup>
               {filteredOptions.map((option) => (
                 <CommandItem
@@ -93,7 +90,7 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      inputValue === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
                   {option.label}
