@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil, Eye, Download } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash2, Printer, Pencil, Eye, Download, Users } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -548,6 +548,7 @@ export default function OrdersPage() {
   );
   
   const WatchedForm = ({ control } : { control: typeof addOrderForm.control | typeof baseOrderForm.control }) => {
+    const [splitBy, setSplitBy] = useState(1);
     const watchedProducts = useWatch({ control, name: 'products' });
     const watchedDiscount = useWatch({ control, name: 'discount' });
     const watchedTip = useWatch({ control, name: 'tip' });
@@ -558,6 +559,7 @@ export default function OrdersPage() {
     }, [watchedProducts]);
 
     const total = subtotal - (Number(watchedDiscount) || 0) + (Number(watchedTip) || 0);
+    const amountPerPerson = total / (splitBy || 1);
 
     return (
        <div className="space-y-2 p-4 rounded-lg bg-muted/50">
@@ -578,6 +580,24 @@ export default function OrdersPage() {
             <span>Total</span>
             <span>NPR {total.toFixed(2)}</span>
           </div>
+           <Separator />
+            <div className="flex items-center gap-4">
+                <Label htmlFor="split-bill" className="flex-shrink-0">Split Bill By</Label>
+                <Input 
+                    id="split-bill"
+                    type="number" 
+                    value={splitBy} 
+                    onChange={e => setSplitBy(Number(e.target.value) || 1)}
+                    min={1}
+                    className="w-20"
+                />
+            </div>
+            {splitBy > 1 && (
+                <div className="flex justify-between text-lg font-bold text-primary pt-2">
+                    <span>Each Person Pays</span>
+                    <span>NPR {amountPerPerson.toFixed(2)}</span>
+                </div>
+            )}
         </div>
     );
   };
