@@ -203,6 +203,8 @@ export default function OrdersPage() {
   }, [user]);
 
   const customerOptions = useMemo(() => customers.map(c => ({ value: c.name || '', label: c.name || '' })), [customers]);
+  const productOptions = useMemo(() => products.map(p => ({ value: p.name, label: `${p.name} (NPR ${p.price})`, id: p.id, price: p.price })), [products]);
+
 
   const handlePrint = () => {
     const printContent = document.getElementById('print-receipt');
@@ -826,7 +828,19 @@ export default function OrdersPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
-                                                        <Input placeholder="Product Name" {...field} />
+                                                        <Combobox
+                                                            options={productOptions}
+                                                            value={field.value || ''}
+                                                            onChange={(value, option) => {
+                                                                field.onChange(value);
+                                                                if(option) {
+                                                                    addOrderForm.setValue(`products.${index}.price`, option.price);
+                                                                    addOrderForm.setValue(`products.${index}.productId`, option.id);
+                                                                }
+                                                            }}
+                                                            placeholder="Select or type product..."
+                                                            inputPlaceholder="Product Name"
+                                                            />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -1054,7 +1068,19 @@ export default function OrdersPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
-                                                      <Input placeholder="Product Name" {...field} />
+                                                      <Combobox
+                                                            options={productOptions}
+                                                            value={field.value || ''}
+                                                            onChange={(value, option) => {
+                                                                field.onChange(value);
+                                                                if(option) {
+                                                                    baseOrderForm.setValue(`products.${index}.price`, option.price);
+                                                                    baseOrderForm.setValue(`products.${index}.productId`, option.id);
+                                                                }
+                                                            }}
+                                                            placeholder="Select or type product..."
+                                                            inputPlaceholder="Product Name"
+                                                            />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>

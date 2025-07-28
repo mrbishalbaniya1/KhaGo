@@ -22,9 +22,9 @@ import {
 import { Input } from "./input"
 
 interface ComboboxProps {
-    options: { value: string; label: string }[];
+    options: { value: string; label: string, [key: string]: any }[];
     value: string;
-    onChange: (value: string) => void;
+    onChange: (value: string, option?: { value: string; label: string, [key: string]: any }) => void;
     placeholder: string;
     inputPlaceholder?: string;
 }
@@ -38,8 +38,9 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
   }, [value])
   
   const handleSelect = (currentValue: string) => {
+    const selectedOption = options.find(option => option.value === currentValue);
     const newValue = currentValue === inputValue ? "" : currentValue
-    onChange(newValue)
+    onChange(newValue, selectedOption)
     setInputValue(newValue)
     setOpen(false)
   }
@@ -78,7 +79,7 @@ export function Combobox({ options, value, onChange, placeholder, inputPlacehold
         <Command>
           <CommandList>
             {filteredOptions.length === 0 && inputValue && (
-                <CommandEmpty>No customer found.</CommandEmpty>
+                <CommandEmpty>No item found.</CommandEmpty>
             )}
             <CommandGroup>
               {filteredOptions.map((option) => (
