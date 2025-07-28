@@ -3,68 +3,73 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSuperAdmin() {
-      return request.auth.token.email == 'apeuninepal.com@gmail.com';
+  
+    // Helper functions to check user roles
+    function isSuperAdmin(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'superadmin';
     }
-
-    function isManager() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
+    
+    function isManager(userId) {
+       return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'manager';
     }
-
-
-    function isEmployee(managerId) {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == managerId;
+    
+    function isEmployee(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role != 'customer' &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role != 'manager' &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role != 'superadmin';
     }
-
+    
     function isOwner(userId) {
-        return request.auth.uid == userId;
+      return request.auth.uid == userId;
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // USERS
+    match /users/{userId} {
+      // Anyone can create their own user record (for signup)
+      // Users can update their own data
+      // Superadmin can view/update any user
+      // Managers can view their own employees
+      allow read: if isSignedIn() && (isOwner(userId) || isSuperAdmin(request.auth.uid) || 
+                  (isManager(request.auth.uid) && resource.data.managerId == request.auth.uid));
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && (isOwner(userId) || isSuperAdmin(request.auth.uid));
+      allow delete: if isSuperAdmin(request.auth.uid);
     }
     
     match /users_by_email/{email} {
-        allow read, create: if true;
-    }
-
-    // Rules for the 'users' collection
-    match /users/{userId} {
-      // Anyone can create a user document (for sign-up)
-      allow create: if true;
-      
-      // Only the user themselves or a superadmin can read their own data.
-      // Managers can read data of their own employees.
-      allow read: if isOwner(userId) || isSuperAdmin() || isEmployee(get(/databases/$(database)/documents/users/$(userId)).data.managerId);
-      
-      // Users can update their own data.
-      // Superadmins can update any user.
-      // Managers can update their employees.
-      allow update: if isOwner(userId) || isSuperAdmin() || isEmployee(get(/databases/$(database)/documents/users/$(userId)).data.managerId);
-
-      // Superadmins can delete managers.
-      // Managers can delete their own employees.
-      allow delete: if isSuperAdmin() || isEmployee(get(/databases/$(database)/documents/users/$(userId)).data.managerId);
+        allow create: if isSignedIn();
+        allow read: if isSignedIn();
     }
     
-    // For manager-specific data, assuming a structure where each manager's data is under a subcollection or has a managerId field.
-    // The following rules apply to collections that should be accessible by managers and their staff.
-    
-    // Products are public to read for anyone
+    // PRODUCTS
     match /products/{productId} {
-      allow read: if true;
-      allow write: if isManager() || isSuperAdmin();
+        // Publicly readable
+        allow read: if true;
+        // Only managers can create/update/delete
+        allow write: if isSignedIn() && isManager(request.auth.uid);
     }
     
-    // Orders, expenses, and inventory can be managed by the manager and their employees.
-    match /orders/{orderId} {
-        allow read, write: if isManager() || isSuperAdmin() || isEmployee(resource.data.managerId);
+    // A single manager's data
+    match /users/{managerId} {
+    
+        // ORDERS, EXPENSES, INVENTORY, CUSTOMERS
+        match /{collection}/{docId} {
+            // Manager and their employees can access these collections
+            allow read, write: if isSignedIn() && (isOwner(managerId) || (isEmployee(request.auth.uid) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId == managerId));
+        }
     }
     
-     match /expenses/{expenseId} {
-        allow read, write: if isManager() || isSuperAdmin() || isEmployee(resource.data.managerId);
-    }
-
-    match /inventory/{transactionId} {
-       allow read, write: if isManager() || isSuperAdmin() || isEmployee(resource.data.managerId);
+     // Catch-all for other collections at the root (like orders, expenses for older structure)
+     // This will be more restrictive
+     match /{document=**} {
+      allow read, write: if isSignedIn() && (isSuperAdmin(request.auth.uid) || isManager(request.auth.uid));
     }
   }
 }
