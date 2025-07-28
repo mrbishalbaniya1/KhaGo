@@ -15,8 +15,9 @@ export const Icons = {
     >
       {/* Bowl */}
       <path d="M14 40a20 20 0 0 0 36 0H14z" />
-      {/* Fork */}
-      <path d="M32 16v16m-4-16v16m8-16v16m-4-16a4 4 0 0 0-4-4 4 4 0 0 0-4 4" />
+      {/* Steam */}
+      <path d="M24 20s2-8 8-8 8 8 8 8" />
+      <path d="M22 28s2-8 8-8 8 8 8 8" />
     </svg>
   ),
 
