@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'CulinaryFlow',
+  title: 'KhaGo',
   description: 'Restaurant Management App by Firebase Studio',
 };
 

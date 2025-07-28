@@ -4,7 +4,7 @@ import type { Product, Order, Expense, InventoryTransaction, User } from './type
 export const mockUser: User = {
   uid: 'user-1',
   name: 'Sita Sharma',
-  email: 'sita.sharma@culinaryflow.np',
+  email: 'sita.sharma@khago.np',
   role: 'admin',
   avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
   lastSeen: 'Online',

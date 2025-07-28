@@ -238,7 +238,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="absolute top-8 left-8 flex items-center gap-2">
         <Icons.logo className="h-8 w-8 text-primary" />
-        <span className="font-headline text-2xl font-bold tracking-tight">CulinaryFlow</span>
+        <span className="font-headline text-2xl font-bold tracking-tight">KhaGo</span>
       </div>
        <div className="w-full max-w-md space-y-4">
         {showApprovalMessage && (
@@ -275,7 +275,7 @@ export default function LoginPage() {
                           <FormControl>
                             <Input
                               type="email"
-                              placeholder="sita.sharma@culinaryflow.np"
+                              placeholder="sita.sharma@khago.np"
                               {...field}
                               disabled={isLoading}
                             />
@@ -314,7 +314,7 @@ export default function LoginPage() {
                 </Button>
               </CardContent>
               <CardFooter className="flex justify-center text-sm">
-                  <p>For demo, use `sita.sharma@culinaryflow.np` and password `password`</p>
+                  <p>For demo, use `sita.sharma@khago.np` and password `password`</p>
               </CardFooter>
             </Card>
           </TabsContent>
