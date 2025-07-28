@@ -14,7 +14,7 @@ import {
   User as FirebaseAuthUser,
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '@/lib/firebase';
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 import { Button } from '@/components/ui/button';
 import {
@@ -57,6 +57,22 @@ const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
 });
+
+async function generateUniqueUsername(businessName: string): Promise<string> {
+    const baseUsername = businessName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+    let username = baseUsername;
+    let counter = 1;
+    while (true) {
+        const q = query(collection(db, 'users'), where('username', '==', username));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            return username;
+        }
+        username = `${baseUsername}${counter}`;
+        counter++;
+    }
+}
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -180,6 +196,7 @@ export default function LoginPage() {
     if (!createdUser) return;
     setIsLoading(true);
     try {
+        const username = await generateUniqueUsername(values.businessName);
         const userData = {
             name: createdUser.displayName,
             email: createdUser.email,
@@ -187,6 +204,7 @@ export default function LoginPage() {
             status: 'pending',
             avatar: createdUser.photoURL || `https://i.pravatar.cc/150?u=${createdUser.uid}`,
             uid: createdUser.uid,
+            username,
             ...values,
         };
         await setDoc(doc(db, "users", createdUser.uid), userData);

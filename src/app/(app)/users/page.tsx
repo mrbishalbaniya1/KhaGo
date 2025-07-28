@@ -73,12 +73,31 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
 
 const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
 const managerRoles = allRoles.filter(role => role === 'manager');
+
+async function generateUniqueUsername(businessName: string): Promise<string> {
+    const baseUsername = businessName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
+    let username = baseUsername;
+    let counter = 1;
+    while (true) {
+        const q = query(collection(db, 'users'), where('username', '==', username));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            return username;
+        }
+        username = `${baseUsername}${counter}`;
+        counter++;
+    }
+}
+
+const addManagerSchema = userSchema.extend({
+    businessName: z.string().min(1, 'Business name is required.'),
+});
 
 
 export default function UsersPage() {
@@ -122,19 +141,39 @@ export default function UsersPage() {
     },
   });
 
+   const addManagerForm = useForm<z.infer<typeof addManagerSchema>>({
+    resolver: zodResolver(addManagerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      role: 'manager',
+      status: 'approved',
+      businessName: '',
+      mobileNumber: '',
+      address: '',
+    },
+  });
+
   const editUserForm = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
   });
 
-  const onAddUserSubmit = async (values: z.infer<typeof userSchema>) => {
+  const onAddUserSubmit = async (values: z.infer<typeof userSchema | typeof addManagerSchema>) => {
     if (!user) return;
 
-    const newUser = {
+    let newUser: Partial<User> = {
       ...values,
       status: 'approved', // Users added manually are auto-approved
       avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
-      ...(userRole === 'manager' && { managerId: user.uid }),
     };
+
+    if (userRole === 'manager') {
+        newUser.managerId = user.uid
+    }
+    
+    if (userRole === 'superadmin' && 'businessName' in values && values.businessName) {
+        newUser.username = await generateUniqueUsername(values.businessName);
+    }
 
     try {
       await addDoc(collection(db, 'users'), newUser);
@@ -143,6 +182,7 @@ export default function UsersPage() {
         description: `${values.name} has been added successfully.`,
       });
       addUserForm.reset();
+      addManagerForm.reset();
       setIsAddUserOpen(false);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
@@ -208,6 +248,8 @@ export default function UsersPage() {
   const addButtonLabel = userRole === 'superadmin' ? 'Add Manager' : 'Add Employee';
   const dialogTitle = userRole === 'superadmin' ? 'Add New Manager' : 'Add New Employee';
   const dialogDescription = userRole === 'superadmin' ? 'Fill in the details to add a new manager.' : 'Fill in the details to invite a new employee.';
+  const currentForm = userRole === 'superadmin' ? addManagerForm : addUserForm;
+
 
   return (
     <>
@@ -229,13 +271,13 @@ export default function UsersPage() {
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>{dialogDescription}</DialogDescription>
                 </DialogHeader>
-                <Form {...addUserForm}>
+                <Form {...currentForm}>
                     <form
-                    onSubmit={addUserForm.handleSubmit(onAddUserSubmit)}
+                    onSubmit={currentForm.handleSubmit(onAddUserSubmit)}
                     className="space-y-4"
                     >
                     <FormField
-                        control={addUserForm.control}
+                        control={currentForm.control}
                         name="name"
                         render={({ field }) => (
                         <FormItem>
@@ -248,7 +290,7 @@ export default function UsersPage() {
                         )}
                     />
                      <FormField
-                        control={addUserForm.control}
+                        control={currentForm.control}
                         name="mobileNumber"
                         render={({ field }) => (
                         <FormItem>
@@ -261,7 +303,7 @@ export default function UsersPage() {
                         )}
                     />
                     <FormField
-                        control={addUserForm.control}
+                        control={currentForm.control}
                         name="email"
                         render={({ field }) => (
                         <FormItem>
@@ -277,8 +319,23 @@ export default function UsersPage() {
                         </FormItem>
                         )}
                     />
+                    {userRole === 'superadmin' && (
+                        <FormField
+                            control={addManagerForm.control}
+                            name="businessName"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Business Name</FormLabel>
+                                <FormControl>
+                                <Input placeholder="e.g., Awesome Restaurant" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    )}
                     <FormField
-                        control={addUserForm.control}
+                        control={currentForm.control}
                         name="address"
                         render={({ field }) => (
                         <FormItem>
@@ -291,7 +348,7 @@ export default function UsersPage() {
                         )}
                     />
                     <FormField
-                        control={addUserForm.control}
+                        control={currentForm.control}
                         name="role"
                         render={({ field }) => (
                         <FormItem>
@@ -518,6 +575,9 @@ export default function UsersPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div><strong>Role:</strong> <span className="capitalize">{selectedUser.role}</span></div>
                         <div><strong>Status:</strong> <span className="capitalize">{selectedUser.status}</span></div>
+                        {selectedUser.username && (
+                            <div><strong>Username:</strong> <span className="font-mono">{selectedUser.username}</span></div>
+                        )}
                     </div>
                      {(selectedUser.businessName || selectedUser.mobileNumber || selectedUser.address) && (
                        <>
@@ -542,5 +602,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    

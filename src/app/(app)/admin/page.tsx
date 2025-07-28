@@ -158,6 +158,9 @@ export default function AdminPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div><strong>Role:</strong> <span className="capitalize">{selectedUser.role}</span></div>
                         <div><strong>Status:</strong> <span className="capitalize">{selectedUser.status}</span></div>
+                        {selectedUser.username && (
+                            <div><strong>Username:</strong> <span className="font-mono">{selectedUser.username}</span></div>
+                        )}
                     </div>
                      {(selectedUser.businessName || selectedUser.mobileNumber || selectedUser.address) && (
                        <>
