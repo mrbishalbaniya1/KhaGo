@@ -72,10 +72,11 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
 const managerRoles = allRoles.filter(role => role === 'manager');
@@ -97,6 +98,7 @@ async function generateUniqueUsername(businessName: string): Promise<string> {
 
 const addManagerSchema = userSchema.extend({
     businessName: z.string().min(1, 'Business name is required.'),
+    password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 
 
@@ -115,7 +117,7 @@ export default function UsersPage() {
     let q;
     if (userRole === 'superadmin') {
         q = query(collection(db, 'users'), where('role', '==', 'manager'));
-    } else if (userRole === 'manager') {
+    } else if (userRole === 'manager' && user.uid) {
         q = query(collection(db, 'users'), where('managerId', '==', user.uid));
     } else {
         return;
@@ -151,6 +153,7 @@ export default function UsersPage() {
       businessName: '',
       mobileNumber: '',
       address: '',
+      password: '',
     },
   });
 
@@ -165,22 +168,33 @@ export default function UsersPage() {
     if (!managerId && userRole !== 'superadmin') return;
 
 
-    let newUser: Partial<User> = {
-      ...values,
-      status: 'approved', // Users added manually are auto-approved
-      avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
-    };
-
-    if (userRole === 'manager' || userRole === 'employee') {
-        newUser.managerId = managerId
-    }
-    
-    if (userRole === 'superadmin' && 'businessName' in values && values.businessName) {
-        newUser.username = await generateUniqueUsername(values.businessName);
-    }
-
     try {
-      await addDoc(collection(db, 'users'), newUser);
+      let newUser: Partial<User> = {
+        name: values.name,
+        email: values.email,
+        role: values.role,
+        status: 'approved',
+        mobileNumber: values.mobileNumber,
+        address: values.address,
+        avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+      };
+
+      if (userRole === 'manager') {
+        newUser.managerId = managerId;
+        // Logic to create an employee without auth for now.
+        // In a real app, you would likely send an invitation or create a login.
+        await addDoc(collection(db, 'users'), newUser);
+      } else if (userRole === 'superadmin' && 'businessName' in values && 'password' in values) {
+          const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+          const newAuthUser = userCredential.user;
+          
+          newUser.uid = newAuthUser.uid;
+          newUser.businessName = values.businessName;
+          newUser.username = await generateUniqueUsername(values.businessName);
+
+          await setDoc(doc(db, 'users', newAuthUser.uid), newUser);
+      }
+
       toast({
         title: 'User Added',
         description: `${values.name} has been added successfully.`,
@@ -188,8 +202,13 @@ export default function UsersPage() {
       addUserForm.reset();
       addManagerForm.reset();
       setIsAddUserOpen(false);
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to add user.', variant: 'destructive' });
+    } catch (error: any) {
+      console.error(error);
+      let message = 'Failed to add user.';
+      if (error.code === 'auth/email-already-in-use') {
+        message = 'This email is already registered.';
+      }
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     }
   };
 
@@ -226,6 +245,7 @@ export default function UsersPage() {
   }
 
   const handleDeleteUser = async (uid: string) => {
+    // Note: Deleting from Firestore. Auth user deletion would need a server-side function.
     try {
       await deleteDoc(doc(db, 'users', uid));
       toast({
@@ -324,6 +344,20 @@ export default function UsersPage() {
                         )}
                     />
                     {userRole === 'superadmin' && (
+                       <>
+                        <FormField
+                            control={addManagerForm.control}
+                            name="password"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                         <FormField
                             control={addManagerForm.control}
                             name="businessName"
@@ -337,6 +371,7 @@ export default function UsersPage() {
                             </FormItem>
                             )}
                         />
+                       </>
                     )}
                     <FormField
                         control={currentForm.control}
