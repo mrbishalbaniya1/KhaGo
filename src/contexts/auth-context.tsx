@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import type { UserRole, User } from '@/lib/types';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const SUPER_ADMIN_EMAIL = 'apeuninepal.com@gmail.com';
@@ -15,6 +15,7 @@ interface AuthContextType {
   loading: boolean;
   userRole: UserRole | null;
   userData: User | null;
+  managerId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   userRole: null,
   userData: null,
+  managerId: null,
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -29,13 +31,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const [managerId, setManagerId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // Handle Super Admin
         if (user.email === SUPER_ADMIN_EMAIL) {
           setUserRole('superadmin');
           const superAdminData: User = {
@@ -46,47 +48,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'approved',
           }
           setUserData(superAdminData);
+          setManagerId(null);
           setLoading(false);
           return;
         }
         
-        // Handle regular users
         const userDocRef = doc(db, 'users', user.uid);
         const userDocUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
             if (userDoc.exists()) {
                 const dbUser = userDoc.data() as User;
                 if (dbUser.status === 'pending') {
                     auth.signOut();
-                    setUser(null);
-                    setUserData(null);
-                    setUserRole(null);
                     router.push('/login?approval=pending');
                 } else {
                     setUserData(dbUser);
                     setUserRole(dbUser.role);
+                    if (dbUser.role === 'manager') {
+                        setManagerId(dbUser.uid);
+                    } else if (dbUser.managerId) {
+                        setManagerId(dbUser.managerId);
+                    } else {
+                        setManagerId(null);
+                    }
                 }
             } else {
-                // This case handles users who signed up but haven't completed business info
-                // or google sign in users not yet in db
-                if (user.providerData.some(p => p.providerId === 'password') && !user.displayName) {
-                  // This is likely a user who hasn't finished step 2
-                  // The login page logic will handle redirecting them. We just don't set a role here.
-                   setUserRole(null);
-                   setUserData(null);
-                } else {
-                  // User might be from Google Sign-In, not yet in DB
-                  setUserRole('customer');
-                  setUserData(null);
-                }
+                 // User might not be in DB yet (e.g. during signup)
+                 setUserRole(null);
+                 setUserData(null);
+                 setManagerId(null);
             }
+            setLoading(false);
+        }, (error) => {
+            console.error("Error in userDoc snapshot listener:", error);
             setLoading(false);
         });
         
         return () => userDocUnsubscribe();
 
       } else {
-        setUserRole(null);
+        setUser(null);
         setUserData(null);
+        setUserRole(null);
+        setManagerId(null);
         setLoading(false);
       }
     });
@@ -95,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, userRole, userData }}>
+    <AuthContext.Provider value={{ user, loading, userRole, userData, managerId }}>
       {children}
     </AuthContext.Provider>
   );

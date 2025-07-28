@@ -80,7 +80,7 @@ export default function InventoryPage() {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, userData, userRole } = useAuth();
+  const { user, managerId } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -90,9 +90,7 @@ export default function InventoryPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
       const unsubProducts = onSnapshot(query(collection(db, 'products'), where('managerId', '==', managerId)), (snapshot) => {
           const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -115,7 +113,7 @@ export default function InventoryPage() {
           unsubProducts();
           unsubTransactions();
       }
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
 
   const stockManagedProducts = useMemo(() => products.filter(p => p.isStockManaged), [products]);
 
@@ -134,9 +132,7 @@ export default function InventoryPage() {
 
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     const product = stockManagedProducts.find(p => p.id === values.productId);
-    if (!user || !userData || !product) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId || !product) return;
 
     try {
         await addDoc(collection(db, 'inventory'), {

@@ -102,7 +102,7 @@ export default function ExpensesPage() {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, userData, userRole } = useAuth();
+  const { user, managerId } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -113,9 +113,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     const q = query(collection(db, 'expenses'), where("managerId", "==", managerId));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -130,7 +128,7 @@ export default function ExpensesPage() {
         setExpenses(expensesData.sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()));
     });
     return () => unsubscribe();
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -147,9 +145,7 @@ export default function ExpensesPage() {
   });
 
   const onAddSubmit = async (values: z.infer<typeof expenseSchema>) => {
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
     try {
         await addDoc(collection(db, 'expenses'), {
             ...values,

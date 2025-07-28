@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { AlertTriangle, ArrowUpRight, DollarSign, ShoppingCart, MinusCircle, UserCheck, Users, ShieldQuestion, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, DollarSign, ShoppingCart, MinusCircle, UserCheck, Users, ShieldQuestion, TrendingUp } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order, Product, Expense, User } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -89,14 +89,11 @@ function ManagerDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const { user, userData, userRole } = useAuth();
+  const { user, managerId } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
-    if (!user || !userData) return;
-    
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     const ordersQuery = query(collection(db, "orders"), where("managerId", "==", managerId), orderBy("createdAt", "desc"), limit(5));
     const unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
@@ -121,7 +118,7 @@ function ManagerDashboard() {
         unsubProducts();
         unsubExpenses();
     }
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
   
   const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = orders.length;

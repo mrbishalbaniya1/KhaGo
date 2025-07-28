@@ -154,7 +154,7 @@ export default function OrdersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-  const { user, userData, userRole } = useAuth();
+  const { user, managerId } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -183,9 +183,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     const unsubOrders = onSnapshot(query(collection(db, 'orders'), where("managerId", "==", managerId)), (snapshot) => {
         const ordersData = snapshot.docs.map(doc => {
@@ -215,7 +213,7 @@ export default function OrdersPage() {
         unsubProducts();
         unsubCustomers();
     }
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
 
   const customerOptions = useMemo(() => customers.map(c => ({ value: c.name || '', label: c.name || '' })), [customers]);
   const productOptions = useMemo(() => products.map(p => ({ value: p.name, label: `${p.name} (NPR ${p.price})`, id: p.id, price: p.price })), [products]);
@@ -286,9 +284,7 @@ export default function OrdersPage() {
   });
 
   const onAddOrderSubmit = async (values: z.infer<typeof orderSchema>) => {
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     const newOrderProducts = values.products.map(p => {
         const productDetails = products.find(mp => mp.name === p.name);

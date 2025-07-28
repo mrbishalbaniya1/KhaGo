@@ -60,7 +60,7 @@ const customerSchema = z.object({
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<User[]>([]);
-  const { user, userRole, userData } = useAuth();
+  const { user, managerId, userRole } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const { toast } = useToast();
@@ -77,10 +77,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!user || !userData) return;
-
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
     
     const q = query(
         collection(db, 'users'), 
@@ -93,12 +90,10 @@ export default function CustomersPage() {
     });
 
     return () => unsubscribe();
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
 
   const onAddCustomerSubmit = async (values: z.infer<typeof customerSchema>) => {
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     try {
       await addDoc(collection(db, 'users'), {
@@ -287,5 +282,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-

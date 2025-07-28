@@ -1,87 +1,73 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
     // Helper functions
     function isSuperAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
+      return request.auth.token.email == 'apeuninepal.com@gmail.com';
     }
-    
+
     function isManager() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
     }
 
-    function isEmployee() {
-      let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-      return userRole != 'superadmin' && userRole != 'manager' && userRole != 'customer';
+    function isEmployee(managerId) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userDoc.role in ['waiter', 'cook', 'employee', 'cashier'] && userDoc.managerId == managerId;
     }
     
-    function getManagerId() {
-       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId;
+    function isOwnerOrManager(managerId) {
+        return request.auth.uid == managerId || isEmployee(managerId);
+    }
+    
+    function isOwner(userId) {
+        return request.auth.uid == userId;
+    }
+    
+    function isCreatingOwnUserDoc() {
+        return request.auth.uid == request.resource.data.uid;
     }
 
-    // A user is creating their own user document during signup
-    function isSigningUp() {
-      return !exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    // USERS
+    // USERS collection
     match /users/{userId} {
-      allow read: if request.auth.uid == userId 
-                  || isSuperAdmin()
-                  || (isManager() && resource.data.managerId == request.auth.uid)
-                  || (isEmployee() && resource.data.managerId == getManagerId() && request.auth.uid == userId);
+      // Allow read access for:
+      // 1. The user themselves
+      // 2. A superadmin
+      // 3. A manager to view their own team members and customers
+      allow read: if isOwner(userId) 
+                  || isSuperAdmin() 
+                  || (isManager() && get(/databases/$(database)/documents/users/$(userId)).data.managerId == request.auth.uid);
                   
-      allow list: if isSuperAdmin()
-                   || (isManager() && request.query.managerId == request.auth.uid);
-                   
-      allow create: if isSigningUp() || isSuperAdmin() || isManager();
-      
-      allow update: if request.auth.uid == userId || isSuperAdmin() || isManager();
-      
-      allow delete: if isSuperAdmin() || isManager();
-    }
-    
-    // USERS_BY_EMAIL (for ensuring unique usernames)
-    match /users_by_email/{email} {
-      allow read, write: if request.auth != null; // Allow any authenticated user to check for uniqueness
-    }
+      // Allow create access for:
+      // 1. Any authenticated user creating their OWN document (for signup)
+      // 2. A superadmin
+      // 3. A manager adding a team member or customer
+      allow create: if isCreatingOwnUserDoc() 
+                    || isSuperAdmin()
+                    || (isManager() && request.resource.data.managerId == request.auth.uid);
+                    
+      // Allow update access for:
+      // 1. The user themselves (for profile updates)
+      // 2. A superadmin (for approvals, etc.)
+      // 3. A manager updating their own team members
+      allow update: if isOwner(userId) 
+                    || isSuperAdmin() 
+                    || (isManager() && get(/databases/$(database)/documents/users/$(userId)).data.managerId == request.auth.uid);
 
-    // PRODUCTS
-    match /products/{productId} {
-      allow read: if isSuperAdmin()
-                   || (isManager() && resource.data.managerId == request.auth.uid)
-                   || (isEmployee() && resource.data.managerId == getManagerId());
-
-      allow list: if isSuperAdmin()
-                   || ((isManager() || isEmployee()) && request.query.managerId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId);
-                   
-      allow create, update, delete: if (isManager() && request.resource.data.managerId == request.auth.uid) || isSuperAdmin();
-    }
-    
-    // ORDERS
-    match /orders/{orderId} {
-       allow read, list: if isSuperAdmin() 
-                      || ((isManager() || isEmployee()) && request.query.managerId == getManagerId());
-       
-       allow create, update, delete: if isManager() || isEmployee() || isSuperAdmin();
+      // Allow delete access for:
+      // 1. A superadmin
+      // 2. A manager deleting their own team members/customers
+      allow delete: if isSuperAdmin() 
+                    || (isManager() && get(/databases/$(database)/documents/users/$(userId)).data.managerId == request.auth.uid);
     }
 
-    // INVENTORY
-    match /inventory/{transactionId} {
-      allow read, list: if isSuperAdmin()
-                     || ((isManager() || isEmployee()) && request.query.managerId == getManagerId());
-
-      allow create: if isManager() || isEmployee() || isSuperAdmin();
-    }
-
-    // EXPENSES
-    match /expenses/{expenseId} {
-      allow read, list: if isSuperAdmin()
-                     || ((isManager() || isEmployee()) && request.query.managerId == getManagerId());
-      
-      allow create, update, delete: if isManager() || isEmployee() || isSuperAdmin();
+    // All business data collections (Orders, Products, etc.)
+    // Rules are the same for all of them: only the manager or their employees can access.
+    match /{collection}/{docId} {
+      allow read, write: if isSuperAdmin() || (request.auth != null && isOwnerOrManager(resource.data.managerId));
+      allow create: if isSuperAdmin() || (request.auth != null && isOwnerOrManager(request.resource.data.managerId));
     }
   }
 }

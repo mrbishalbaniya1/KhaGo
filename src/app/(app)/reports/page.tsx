@@ -40,14 +40,11 @@ export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const { user, userData, userRole } = useAuth();
+  const { user, managerId } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
-    if (!user || !userData) return;
-
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), where('managerId', '==', managerId)), (snapshot) => {
         const expensesData = snapshot.docs.map(doc => {
@@ -92,7 +89,7 @@ export default function ReportsPage() {
         unsubProducts();
         unsubOrders();
     };
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
 
   const salesData = eachMonthOfInterval({
     start: subMonths(new Date(), 5),

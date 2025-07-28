@@ -104,7 +104,7 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, userData, userRole } = useAuth();
+  const { user, managerId } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -114,9 +114,7 @@ export default function ProductsPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     const q = query(collection(db, 'products'), where("managerId", "==", managerId));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -124,7 +122,7 @@ export default function ProductsPage() {
         setProducts(productsData);
     });
     return () => unsubscribe();
-  }, [user, userData, userRole]);
+  }, [user, managerId]);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -145,9 +143,7 @@ export default function ProductsPage() {
   });
 
   const onAddSubmit = async (values: z.infer<typeof productSchema>) => {
-    if (!user || !userData) return;
-    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
-    if (!managerId) return;
+    if (!user || !managerId) return;
 
     try {
         await addDoc(collection(db, 'products'), { ...values, managerId: managerId });
