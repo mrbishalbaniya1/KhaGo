@@ -72,12 +72,12 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { db, auth } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
-import { createUserWithEmailAndPassword, getAuth, initializeApp, deleteApp } from 'firebase/auth';
-import { getApp, getApps } from 'firebase/app';
+import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth';
+import { getApp, getApps, initializeApp, deleteApp } from 'firebase/app';
 
 
 const employeeRoles = allRoles.filter(role => !['superadmin', 'admin', 'manager', 'customer'].includes(role));
