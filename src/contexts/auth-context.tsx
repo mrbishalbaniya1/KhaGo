@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User as FirebaseAuthUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import type { UserRole, User } from '@/lib/types';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const SUPER_ADMIN_EMAIL = 'apeuninepal.com@gmail.com';
@@ -36,66 +36,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
       if (user) {
-        if (user.email === SUPER_ADMIN_EMAIL) {
-          setUserRole('superadmin');
-          const superAdminData: User = {
-            uid: user.uid,
-            email: user.email!,
-            name: user.displayName || 'Super Admin',
-            role: 'superadmin',
-            status: 'approved',
-          }
-          setUserData(superAdminData);
-          setManagerId(null);
-          setLoading(false);
-          return;
-        }
+        setUser(user);
         
         const userDocRef = doc(db, 'users', user.uid);
-        const userDocUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
-            if (userDoc.exists()) {
-                const dbUser = userDoc.data() as User;
-                if (dbUser.status === 'pending') {
-                    auth.signOut();
-                    router.push('/login?approval=pending');
-                } else {
-                    setUserData(dbUser);
-                    setUserRole(dbUser.role);
-                    if (dbUser.role === 'manager') {
-                        setManagerId(dbUser.uid);
-                    } else if (dbUser.managerId) {
-                        setManagerId(dbUser.managerId);
-                    } else {
-                        setManagerId(null);
-                    }
-                }
-            } else {
-                 // User might not be in DB yet (e.g. during signup)
-                 setUserRole(null);
-                 setUserData(null);
-                 setManagerId(null);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error in userDoc snapshot listener:", error);
-            setLoading(false);
-        });
-        
-        return () => userDocUnsubscribe();
+        const userDocSnap = await getDoc(userDocRef);
 
+        if (userDocSnap.exists()) {
+            const dbUser = userDocSnap.data() as User;
+             if (dbUser.status === 'pending') {
+                auth.signOut();
+                router.push('/login?approval=pending');
+                setLoading(false);
+                return;
+            }
+
+            setUserData(dbUser);
+            setUserRole(dbUser.role);
+
+            if (dbUser.role === 'superadmin') {
+              setManagerId(null);
+            } else if (dbUser.role === 'manager') {
+              setManagerId(user.uid);
+            } else {
+              setManagerId(dbUser.managerId || null);
+            }
+
+        } else {
+            // Handle case where user is authenticated but not in DB (e.g., during signup)
+            setUserRole(null);
+            setUserData(null);
+            setManagerId(null);
+        }
       } else {
         setUser(null);
         setUserData(null);
         setUserRole(null);
         setManagerId(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [router]);
+
+  // Separate effect for live updates on user data
+  useEffect(() => {
+    if (user?.uid) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const unsubFromDoc = onSnapshot(userDocRef, (docSnap) => {
+         if (docSnap.exists()) {
+            const dbUser = docSnap.data() as User;
+            setUserData(dbUser);
+            setUserRole(dbUser.role);
+            if (dbUser.role === 'superadmin') {
+              setManagerId(null);
+            } else if (dbUser.role === 'manager') {
+              setManagerId(user.uid);
+            } else {
+              setManagerId(dbUser.managerId || null);
+            }
+         }
+      });
+      return () => unsubFromDoc();
+    }
+  }, [user?.uid])
+
 
   return (
     <AuthContext.Provider value={{ user, loading, userRole, userData, managerId }}>
