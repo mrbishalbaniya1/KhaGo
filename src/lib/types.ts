@@ -31,3 +31,62 @@ export const userSchema = z.object({
   address: z.string().optional(),
   managerId: z.string().optional(),
 });
+
+export type Product = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  isStockManaged: boolean;
+  stockQty: number;
+  available: boolean;
+  managerId: string;
+  popularityScore: number;
+  spoilageRisk: 'low' | 'medium' | 'high';
+};
+
+export type OrderProduct = {
+    productId: string;
+    name: string;
+    qty: number;
+    price: number;
+}
+
+export type Order = {
+    id: string;
+    tokenNumber: string;
+    tableNumber?: number;
+    customerName?: string;
+    products: OrderProduct[];
+    subtotal: number;
+    discount: number;
+    tip: number;
+    totalPrice: number;
+    status: 'pending' | 'preparing' | 'ready' | 'delivered';
+    notes?: string;
+    createdAt: Date | Timestamp;
+    managerId: string;
+    paymentMethod: 'cash' | 'online' | 'pending';
+    paymentStatus: 'pending' | 'paid' | 'refunded';
+    orderTakenBy?: string;
+    cashierName?: string;
+};
+
+export type Expense = {
+    id: string;
+    category: string;
+    amount: number;
+    description?: string;
+    date: Date | Timestamp;
+    managerId: string;
+};
+
+export type InventoryTransaction = {
+    id: string;
+    productId: string;
+    productName: string;
+    qtyChange: number;
+    reason: 'stock-in' | 'usage' | 'spoilage';
+    date: Date | Timestamp;
+    managerId: string;
+};

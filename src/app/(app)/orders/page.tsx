@@ -183,7 +183,8 @@ export default function OrdersPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+    if (!user) return;
+    const unsubOrders = onSnapshot(query(collection(db, 'orders'), where("managerId", "==", user.uid)), (snapshot) => {
         const ordersData = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -195,24 +196,21 @@ export default function OrdersPage() {
         setOrders(ordersData.sort((a,b) => (b.createdAt as Date).getTime() - (a.createdAt as Date).getTime()));
     });
     
-    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+    const unsubProducts = onSnapshot(query(collection(db, 'products'), where("managerId", "==", user.uid)), (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productsData);
     });
 
-    if (user) {
-        const q = query(collection(db, 'users'), where('role', '==', 'customer'), where('managerId', '==', user.uid));
-        const unsubCustomers = onSnapshot(q, (snapshot) => {
-            const customersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
-            setCustomers(customersData);
-        });
-        return () => { unsubCustomers(); unsubOrders(); unsubProducts(); }
-    }
-
+    
+    const unsubCustomers = onSnapshot(query(collection(db, 'users'), where('role', '==', 'customer'), where('managerId', '==', user.uid)), (snapshot) => {
+        const customersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+        setCustomers(customersData);
+    });
 
     return () => {
         unsubOrders();
         unsubProducts();
+        unsubCustomers();
     }
   }, [user]);
 
@@ -285,6 +283,7 @@ export default function OrdersPage() {
   });
 
   const onAddOrderSubmit = async (values: z.infer<typeof orderSchema>) => {
+    if (!user) return;
     const newOrderProducts = values.products.map(p => {
         const productDetails = products.find(mp => mp.name === p.name);
         return {
@@ -320,6 +319,7 @@ export default function OrdersPage() {
         createdAt: Timestamp.now(),
         paymentMethod: values.paymentMethod,
         paymentStatus: paymentStatus,
+        managerId: user.uid,
     };
 
     try {
@@ -340,6 +340,7 @@ export default function OrdersPage() {
                     qtyChange: -orderProduct.qty,
                     reason: 'usage',
                     date: Timestamp.now(),
+                    managerId: user.uid,
                 });
 
                 const productRef = doc(db, 'products', product.id);

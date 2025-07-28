@@ -57,8 +57,9 @@ import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, Timestamp, query, where } from 'firebase/firestore';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 
 const transactionSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -79,6 +80,7 @@ export default function InventoryPage() {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -88,12 +90,13 @@ export default function InventoryPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-      const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+    if (!user) return;
+      const unsubProducts = onSnapshot(query(collection(db, 'products'), where('managerId', '==', user.uid)), (snapshot) => {
           const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
           setProducts(productsData);
       });
 
-      const unsubTransactions = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+      const unsubTransactions = onSnapshot(query(collection(db, 'inventory'), where('managerId', '==', user.uid)), (snapshot) => {
           const transactionsData = snapshot.docs.map(doc => {
               const data = doc.data();
               return {
@@ -109,7 +112,7 @@ export default function InventoryPage() {
           unsubProducts();
           unsubTransactions();
       }
-  }, []);
+  }, [user]);
 
   const stockManagedProducts = useMemo(() => products.filter(p => p.isStockManaged), [products]);
 
@@ -128,13 +131,14 @@ export default function InventoryPage() {
 
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     const product = stockManagedProducts.find(p => p.id === values.productId);
-    if (!product) return;
+    if (!product || !user) return;
 
     try {
         await addDoc(collection(db, 'inventory'), {
             ...values,
             productName: product.name,
             date: Timestamp.now(),
+            managerId: user.uid,
         });
         toast({
         title: 'Transaction Added',
@@ -157,7 +161,7 @@ export default function InventoryPage() {
         );
       })
       .filter((transaction) => {
-        const txDate = (transaction.date as Timestamp).toDate();
+        const txDate = transaction.date as Date;
         if (dateFilter === 'all') return true;
         if (dateFilter === 'today') return isToday(txDate);
         if (dateFilter === 'week') return isThisWeek(txDate, { weekStartsOn: 1 });
@@ -303,7 +307,7 @@ export default function InventoryPage() {
                 paginatedTransactions.length > 0 ? (
                   paginatedTransactions.map((tx) => (
                     <TableRow key={tx.id}>
-                      <TableCell>{format((tx.date as Timestamp).toDate(), 'MMM d, yyyy p')}</TableCell>
+                      <TableCell>{format(tx.date as Date, 'MMM d, yyyy p')}</TableCell>
                       <TableCell className="font-medium">{tx.productName}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="capitalize">{tx.reason.replace('-', ' ')}</Badge>
@@ -340,5 +344,3 @@ export default function InventoryPage() {
     </>
   );
 }
-
-    

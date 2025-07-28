@@ -25,20 +25,13 @@ import {
   YAxis,
   Cell,
 } from 'recharts';
-import type { Expense, Product } from '@/lib/types';
+import type { Expense, Product, Order } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
-
-const salesData = [
-    { name: 'Jan', total: 1000 + Math.random() * 4000 },
-    { name: 'Feb', total: 1000 + Math.random() * 4000 },
-    { name: 'Mar', total: 1000 + Math.random() * 4000 },
-    { name: 'Apr', total: 1000 + Math.random() * 4000 },
-    { name: 'May', total: 2000 + Math.random() * 3000 },
-    { name: 'Jun', total: 1500 + Math.random() * 3500 },
-];
+import { useAuth } from '@/contexts/auth-context';
+import { eachMonthOfInterval, subMonths, format, startOfMonth } from 'date-fns';
 
 const COLORS = ['#FF7F50', '#FFDB58', '#8884d8', '#82ca9d', '#ffc658'];
 
@@ -46,10 +39,13 @@ export default function ReportsPage() {
   const [isClient, setIsClient] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
-    const unsubExpenses = onSnapshot(collection(db, 'expenses'), (snapshot) => {
+    if (!user) return;
+    const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), where('managerId', '==', user.uid)), (snapshot) => {
         const expensesData = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -61,17 +57,50 @@ export default function ReportsPage() {
         setExpenses(expensesData);
     });
 
-    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
+    const unsubProducts = onSnapshot(query(collection(db, "products"), where('managerId', '==', user.uid)), (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
         setProducts(productsData);
     });
+    
+    const sixMonthsAgo = subMonths(new Date(), 5);
+    const startOfPeriod = startOfMonth(sixMonthsAgo);
+    
+    const unsubOrders = onSnapshot(
+      query(
+        collection(db, "orders"), 
+        where('managerId', '==', user.uid), 
+        where("createdAt", ">=", Timestamp.fromDate(startOfPeriod))
+      ), 
+      (snapshot) => {
+          const ordersData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id, 
+              ...data,
+              createdAt: (data.createdAt as Timestamp).toDate()
+            } as Order
+          });
+          setOrders(ordersData);
+      });
 
     return () => {
         unsubExpenses();
         unsubProducts();
+        unsubOrders();
     };
-  }, []);
-  
+  }, [user]);
+
+  const salesData = eachMonthOfInterval({
+    start: subMonths(new Date(), 5),
+    end: new Date(),
+  }).map(month => {
+    const monthStr = format(month, 'MMM');
+    const total = orders
+      .filter(order => format(order.createdAt, 'MMM') === monthStr)
+      .reduce((sum, order) => sum + order.totalPrice, 0);
+    return { name: monthStr, total };
+  });
+
   const expenseData = expenses
   .reduce((acc, expense) => {
     const existing = acc.find((e) => e.name === expense.category);
@@ -83,7 +112,7 @@ export default function ReportsPage() {
     return acc;
   }, [] as { name: string; value: number }[]);
 
-  const inventoryData = products.map(p => ({
+  const inventoryData = products.filter(p => p.isStockManaged).map(p => ({
       name: p.name,
       stock: p.stockQty,
   }));
@@ -135,7 +164,7 @@ export default function ReportsPage() {
                   <BarChart data={salesData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
-                    <YAxis unit="k" tickFormatter={(value) => `${(value / 1000).toFixed(0)}`} />
+                    <YAxis tickFormatter={(value) => `NPR ${value.toLocaleString()}`} />
                     <Tooltip formatter={(value: number) => `NPR ${value.toLocaleString()}`} />
                     <Legend />
                     <Bar dataKey="total" fill="hsl(var(--primary))" name="Sales (in NPR)" />

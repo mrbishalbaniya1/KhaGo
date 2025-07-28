@@ -77,8 +77,9 @@ import { TablePagination } from '@/components/ui/table-pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, Timestamp, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 
 const expenseSchema = z.object({
   category: z.string().min(1, 'Category is required'),
@@ -101,6 +102,7 @@ export default function ExpensesPage() {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -111,7 +113,9 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const unsubscribe = onSnapshot(collection(db, 'expenses'), (snapshot) => {
+    if (!user) return;
+    const q = query(collection(db, 'expenses'), where("managerId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
         const expensesData = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -123,7 +127,7 @@ export default function ExpensesPage() {
         setExpenses(expensesData.sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()));
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const form = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -140,10 +144,12 @@ export default function ExpensesPage() {
   });
 
   const onAddSubmit = async (values: z.infer<typeof expenseSchema>) => {
+    if (!user) return;
     try {
         await addDoc(collection(db, 'expenses'), {
             ...values,
             date: Timestamp.fromDate(values.date),
+            managerId: user.uid,
         });
         toast({
         title: 'Expense Added',
@@ -511,5 +517,3 @@ export default function ExpensesPage() {
     </>
   );
 }
-
-    

@@ -77,8 +77,9 @@ import { TableToolbar } from '@/components/ui/table-toolbar';
 import { TablePagination } from '@/components/ui/table-pagination';
 import { cn } from '@/lib/utils';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -103,6 +104,7 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -112,12 +114,14 @@ export default function ProductsPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'products'), (snapshot) => {
+    if (!user) return;
+    const q = query(collection(db, 'products'), where("managerId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productsData);
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -138,8 +142,9 @@ export default function ProductsPage() {
   });
 
   const onAddSubmit = async (values: z.infer<typeof productSchema>) => {
+    if (!user) return;
     try {
-        await addDoc(collection(db, 'products'), values);
+        await addDoc(collection(db, 'products'), { ...values, managerId: user.uid });
         toast({
             title: 'Product Added',
             description: `${values.name} has been added to the catalog.`,
@@ -508,5 +513,3 @@ export default function ProductsPage() {
     </>
   );
 }
-
-    

@@ -89,22 +89,26 @@ function ManagerDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
+    if (!user) return;
     
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(5));
-    const unsubOrders = onSnapshot(q, (snapshot) => {
+    const ordersQuery = query(collection(db, "orders"), where("managerId", "==", user.uid), orderBy("createdAt", "desc"), limit(5));
+    const unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
         const ordersData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate()} as Order));
         setOrders(ordersData);
     });
 
-    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
+    const productsQuery = query(collection(db, "products"), where("managerId", "==", user.uid));
+    const unsubProducts = onSnapshot(productsQuery, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
         setProducts(productsData);
     });
 
-    const unsubExpenses = onSnapshot(collection(db, "expenses"), (snapshot) => {
+    const expensesQuery = query(collection(db, "expenses"), where("managerId", "==", user.uid));
+    const unsubExpenses = onSnapshot(expensesQuery, (snapshot) => {
         const expensesData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()} as Expense));
         setExpenses(expensesData);
     });
@@ -114,7 +118,7 @@ function ManagerDashboard() {
         unsubProducts();
         unsubExpenses();
     }
-  }, []);
+  }, [user]);
   
   const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = orders.length;
