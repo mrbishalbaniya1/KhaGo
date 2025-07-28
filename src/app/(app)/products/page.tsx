@@ -104,7 +104,7 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userData, userRole } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -114,14 +114,17 @@ export default function ProductsPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, 'products'), where("managerId", "==", user.uid));
+    if (!user || !userData) return;
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
+
+    const q = query(collection(db, 'products'), where("managerId", "==", managerId));
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
         setProducts(productsData);
     });
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userData, userRole]);
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -142,9 +145,12 @@ export default function ProductsPage() {
   });
 
   const onAddSubmit = async (values: z.infer<typeof productSchema>) => {
-    if (!user) return;
+    if (!user || !userData) return;
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
+
     try {
-        await addDoc(collection(db, 'products'), { ...values, managerId: user.uid });
+        await addDoc(collection(db, 'products'), { ...values, managerId: managerId });
         toast({
             title: 'Product Added',
             description: `${values.name} has been added to the catalog.`,

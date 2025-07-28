@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -6,65 +5,83 @@ service cloud.firestore {
   
     // Helper functions
     function isSuperAdmin() {
-      return request.auth.token.email == 'apeuninepal.com@gmail.com';
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin';
     }
     
     function isManager() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager';
     }
 
-    function isEmployee(managerId) {
-      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return user.role in ['waiter', 'cook', 'cashier', 'employee'] && user.managerId == managerId;
+    function isEmployee() {
+      let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return userRole != 'superadmin' && userRole != 'manager' && userRole != 'customer';
     }
     
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    function userIsApproved() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved';
+    function getManagerId() {
+       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId;
     }
 
-    // USERS collection
+    // A user is creating their own user document during signup
+    function isSigningUp() {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // USERS
     match /users/{userId} {
-      allow read: if isSuperAdmin() || isOwner(userId);
-      allow create: if request.auth.uid != null; // Allow user creation during sign-up
-      allow update: if isSuperAdmin() || isOwner(userId);
-      allow delete: if isSuperAdmin();
+      allow read: if request.auth.uid == userId 
+                  || isSuperAdmin()
+                  || (isManager() && resource.data.managerId == request.auth.uid)
+                  || (isEmployee() && resource.data.managerId == getManagerId() && request.auth.uid == userId);
+                  
+      allow list: if isSuperAdmin()
+                   || (isManager() && request.query.managerId == request.auth.uid);
+                   
+      allow create: if isSigningUp() || isSuperAdmin() || isManager();
+      
+      allow update: if request.auth.uid == userId || isSuperAdmin() || isManager();
+      
+      allow delete: if isSuperAdmin() || isManager();
     }
     
+    // USERS_BY_EMAIL (for ensuring unique usernames)
     match /users_by_email/{email} {
-        allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null; // Allow any authenticated user to check for uniqueness
     }
 
-    // Generic rule for collections owned by managers
-    function isManagerResource(managerId) {
-        return request.auth.uid == managerId;
-    }
-    
-    // PRODUCTS collection
+    // PRODUCTS
     match /products/{productId} {
-      allow read: if true; // Products can be read by anyone
-      allow write: if isSuperAdmin() || (isManager() && isManagerResource(request.resource.data.managerId));
+      allow read: if isSuperAdmin()
+                   || (isManager() && resource.data.managerId == request.auth.uid)
+                   || (isEmployee() && resource.data.managerId == getManagerId());
+
+      allow list: if isSuperAdmin()
+                   || ((isManager() || isEmployee()) && request.query.managerId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managerId);
+                   
+      allow create, update, delete: if (isManager() && request.resource.data.managerId == request.auth.uid) || isSuperAdmin();
+    }
+    
+    // ORDERS
+    match /orders/{orderId} {
+       allow read, list: if isSuperAdmin() 
+                      || ((isManager() || isEmployee()) && request.query.managerId == getManagerId());
+       
+       allow create, update, delete: if isManager() || isEmployee() || isSuperAdmin();
     }
 
-    // ORDERS collection
-    match /orders/{orderId} {
-      allow read, write: if isSuperAdmin() || (isManager() && isManagerResource(request.resource.data.managerId));
-      allow create: if isManager() && isManagerResource(request.resource.data.managerId);
-    }
-    
-    // EXPENSES collection
-    match /expenses/{expenseId} {
-       allow read, write: if isSuperAdmin() || (isManager() && isManagerResource(request.resource.data.managerId));
-       allow create: if isManager() && isManagerResource(request.resource.data.managerId);
-    }
-    
-    // INVENTORY collection
+    // INVENTORY
     match /inventory/{transactionId} {
-       allow read, write: if isSuperAdmin() || (isManager() && isManagerResource(request.resource.data.managerId));
-       allow create: if isManager() && isManagerResource(request.resource.data.managerId);
+      allow read, list: if isSuperAdmin()
+                     || ((isManager() || isEmployee()) && request.query.managerId == getManagerId());
+
+      allow create: if isManager() || isEmployee() || isSuperAdmin();
+    }
+
+    // EXPENSES
+    match /expenses/{expenseId} {
+      allow read, list: if isSuperAdmin()
+                     || ((isManager() || isEmployee()) && request.query.managerId == getManagerId());
+      
+      allow create, update, delete: if isManager() || isEmployee() || isSuperAdmin();
     }
   }
 }

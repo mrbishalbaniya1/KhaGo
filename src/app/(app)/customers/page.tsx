@@ -60,7 +60,7 @@ const customerSchema = z.object({
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<User[]>([]);
-  const { user, userRole } = useAuth();
+  const { user, userRole, userData } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const { toast } = useToast();
@@ -77,12 +77,15 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!user) return;
+    if (!user || !userData) return;
+
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
     
     const q = query(
         collection(db, 'users'), 
         where('role', '==', 'customer'), 
-        where('managerId', '==', user.uid)
+        where('managerId', '==', managerId)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const customersData: User[] = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
@@ -90,14 +93,17 @@ export default function CustomersPage() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userData, userRole]);
 
   const onAddCustomerSubmit = async (values: z.infer<typeof customerSchema>) => {
-    if (!user) return;
+    if (!user || !userData) return;
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
+
     try {
       await addDoc(collection(db, 'users'), {
         ...values,
-        managerId: user.uid,
+        managerId: managerId,
         role: 'customer',
         status: 'approved',
         avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
@@ -281,4 +287,5 @@ export default function CustomersPage() {
     </>
   );
 }
+
 

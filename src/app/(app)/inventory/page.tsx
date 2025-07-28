@@ -80,7 +80,7 @@ export default function InventoryPage() {
   const [isClient, setIsClient] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userData, userRole } = useAuth();
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -90,13 +90,16 @@ export default function InventoryPage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    if (!user) return;
-      const unsubProducts = onSnapshot(query(collection(db, 'products'), where('managerId', '==', user.uid)), (snapshot) => {
+    if (!user || !userData) return;
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
+
+      const unsubProducts = onSnapshot(query(collection(db, 'products'), where('managerId', '==', managerId)), (snapshot) => {
           const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
           setProducts(productsData);
       });
 
-      const unsubTransactions = onSnapshot(query(collection(db, 'inventory'), where('managerId', '==', user.uid)), (snapshot) => {
+      const unsubTransactions = onSnapshot(query(collection(db, 'inventory'), where('managerId', '==', managerId)), (snapshot) => {
           const transactionsData = snapshot.docs.map(doc => {
               const data = doc.data();
               return {
@@ -112,7 +115,7 @@ export default function InventoryPage() {
           unsubProducts();
           unsubTransactions();
       }
-  }, [user]);
+  }, [user, userData, userRole]);
 
   const stockManagedProducts = useMemo(() => products.filter(p => p.isStockManaged), [products]);
 
@@ -131,14 +134,16 @@ export default function InventoryPage() {
 
   const onSubmit = async (values: z.infer<typeof transactionSchema>) => {
     const product = stockManagedProducts.find(p => p.id === values.productId);
-    if (!product || !user) return;
+    if (!user || !userData || !product) return;
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
 
     try {
         await addDoc(collection(db, 'inventory'), {
             ...values,
             productName: product.name,
             date: Timestamp.now(),
-            managerId: user.uid,
+            managerId: managerId,
         });
         toast({
         title: 'Transaction Added',

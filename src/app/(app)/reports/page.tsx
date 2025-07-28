@@ -40,12 +40,16 @@ export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const { user } = useAuth();
+  const { user, userData, userRole } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
-    if (!user) return;
-    const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), where('managerId', '==', user.uid)), (snapshot) => {
+    if (!user || !userData) return;
+
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
+
+    const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), where('managerId', '==', managerId)), (snapshot) => {
         const expensesData = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -57,7 +61,7 @@ export default function ReportsPage() {
         setExpenses(expensesData);
     });
 
-    const unsubProducts = onSnapshot(query(collection(db, "products"), where('managerId', '==', user.uid)), (snapshot) => {
+    const unsubProducts = onSnapshot(query(collection(db, "products"), where('managerId', '==', managerId)), (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
         setProducts(productsData);
     });
@@ -68,7 +72,7 @@ export default function ReportsPage() {
     const unsubOrders = onSnapshot(
       query(
         collection(db, "orders"), 
-        where('managerId', '==', user.uid), 
+        where('managerId', '==', managerId), 
         where("createdAt", ">=", Timestamp.fromDate(startOfPeriod))
       ), 
       (snapshot) => {
@@ -88,7 +92,7 @@ export default function ReportsPage() {
         unsubProducts();
         unsubOrders();
     };
-  }, [user]);
+  }, [user, userData, userRole]);
 
   const salesData = eachMonthOfInterval({
     start: subMonths(new Date(), 5),

@@ -107,7 +107,7 @@ export default function UsersPage() {
   const [isViewUserOpen, setIsViewUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user, userRole } = useAuth();
+  const { user, userRole, userData } = useAuth();
 
   useEffect(() => {
     if (!user) return;
@@ -159,7 +159,11 @@ export default function UsersPage() {
   });
 
   const onAddUserSubmit = async (values: z.infer<typeof userSchema | typeof addManagerSchema>) => {
-    if (!user) return;
+    if (!user || !userData) return;
+    
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId && userRole !== 'superadmin') return;
+
 
     let newUser: Partial<User> = {
       ...values,
@@ -167,8 +171,8 @@ export default function UsersPage() {
       avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
     };
 
-    if (userRole === 'manager') {
-        newUser.managerId = user.uid
+    if (userRole === 'manager' || userRole === 'employee') {
+        newUser.managerId = managerId
     }
     
     if (userRole === 'superadmin' && 'businessName' in values && values.businessName) {

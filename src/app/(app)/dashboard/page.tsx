@@ -89,25 +89,28 @@ function ManagerDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const { user } = useAuth();
+  const { user, userData, userRole } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
-    if (!user) return;
+    if (!user || !userData) return;
     
-    const ordersQuery = query(collection(db, "orders"), where("managerId", "==", user.uid), orderBy("createdAt", "desc"), limit(5));
+    const managerId = userRole === 'manager' ? user.uid : userData.managerId;
+    if (!managerId) return;
+
+    const ordersQuery = query(collection(db, "orders"), where("managerId", "==", managerId), orderBy("createdAt", "desc"), limit(5));
     const unsubOrders = onSnapshot(ordersQuery, (snapshot) => {
         const ordersData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), createdAt: (doc.data().createdAt as Timestamp).toDate()} as Order));
         setOrders(ordersData);
     });
 
-    const productsQuery = query(collection(db, "products"), where("managerId", "==", user.uid));
+    const productsQuery = query(collection(db, "products"), where("managerId", "==", managerId));
     const unsubProducts = onSnapshot(productsQuery, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
         setProducts(productsData);
     });
 
-    const expensesQuery = query(collection(db, "expenses"), where("managerId", "==", user.uid));
+    const expensesQuery = query(collection(db, "expenses"), where("managerId", "==", managerId));
     const unsubExpenses = onSnapshot(expensesQuery, (snapshot) => {
         const expensesData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()} as Expense));
         setExpenses(expensesData);
@@ -118,7 +121,7 @@ function ManagerDashboard() {
         unsubProducts();
         unsubExpenses();
     }
-  }, [user]);
+  }, [user, userData, userRole]);
   
   const totalRevenue = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   const totalOrders = orders.length;
