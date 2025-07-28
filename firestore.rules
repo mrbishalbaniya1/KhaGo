@@ -1,13 +1,16 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // =================================
-    // Helper Functions
-    // =================================
+
     function isSuperAdmin() {
       return request.auth.token.email == 'apeuninepal.com@gmail.com';
+    }
+
+    function isManager(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.role == 'manager';
     }
 
     function isSignedIn() {
@@ -17,65 +20,45 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    
+    function getRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+    
+    function isApproved(userId) {
+        return get(/databases/$(database)/documents/users/$(userId)).data.status == 'approved';
     }
 
-    function isManager() {
-      return getUserData().role == 'manager';
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
-    // =================================
-    // User Collection
-    // =================================
+    // A user can be created if they are authenticated and creating their own user document.
+    // This is for the initial sign-up process.
     match /users/{userId} {
-      // READ: 
-      // 1. Superadmin can read any user doc.
-      // 2. A user can read their own doc.
-      // 3. A manager can read the docs of their employees or customers.
-      allow read: if isSuperAdmin() || 
-                     isOwner(userId) ||
-                     (isManager() && get(/databases/$(database)/documents/users/$(userId)).data.managerId == request.auth.uid);
-
-      // CREATE: 
-      // 1. Superadmin can create users (for managers).
-      // 2. Any authenticated user can create their own user document if it doesn't exist.
-      allow create: if isSuperAdmin() || (isSignedIn() && isOwner(userId));
-
-      // UPDATE:
-      // 1. Superadmin can update any user doc.
-      // 2. A user can update their own doc.
-      allow update: if isSuperAdmin() || isOwner(userId);
-      
-      // DELETE:
-      // 1. Superadmin can delete users.
-      // 2. A manager can delete their employees/customers.
-      allow delete: if isSuperAdmin() || 
-                       (isManager() && get(/databases/$(database)/documents/users/$(userId)).data.managerId == request.auth.uid);
+      allow read: if isSignedIn() && (isSuperAdmin() || isOwner(userId) || getUserData(request.auth.uid).managerId == userId || getUserData(userId).managerId == request.auth.uid);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && (isSuperAdmin() || isOwner(userId) || (isManager(request.auth.uid) && request.resource.data.managerId == request.auth.uid));
+      allow delete: if isSignedIn() && (isSuperAdmin() || (isManager(request.auth.uid) && getUserData(userId).managerId == request.auth.uid));
     }
     
-    // =================================
-    // Business Data Collections
-    // =================================
-    function isManagerOfResource(managerId) {
-      // Check if the requesting user is the manager of the resource
-      return isManager() && request.auth.uid == managerId;
+    // Allow superadmin to list all managers
+    match /users_by_email/{email} {
+        allow read, write: if isSuperAdmin();
     }
 
-    function isEmployeeOfResource(managerId) {
-      // Check if the requesting user is an employee of the manager of the resource
-      return getUserData().managerId == managerId;
-    }
-    
-    // Generic rule for business-related data
+    // Rules for collections that are scoped by managerId
     match /{collection}/{docId} {
-      // Applied to: products, orders, expenses, inventory
-      allow read, write: if isSignedIn() && (
-                            isSuperAdmin() || 
-                            isManagerOfResource(resource.data.managerId) || 
-                            isEmployeeOfResource(resource.data.managerId)
-                          );
+      allow read, write: if isSignedIn() &&
+                            isApproved(request.auth.uid) &&
+                            (getRole(request.auth.uid) == 'superadmin' ||
+                             (getRole(request.auth.uid) == 'manager' && request.auth.uid == resource.data.managerId) ||
+                             (getUserData(request.auth.uid).managerId == resource.data.managerId));
+
+      allow create: if isSignedIn() &&
+                      isApproved(request.auth.uid) &&
+                      (getRole(request.auth.uid) == 'manager' && request.auth.uid == request.resource.data.managerId) ||
+                      (getUserData(request.auth.uid).managerId == request.resource.data.managerId);
     }
   }
 }
