@@ -101,7 +101,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 pathname.startsWith(path) && (
                     <Button key={path} size="icon" variant="ghost" asChild>
                         <Link href={addActionLinks[path]}>
-                            <PlusCircle />
+                            <PlusCircle className="text-primary" />
                             <span className="sr-only">Add</span>
                         </Link>
                     </Button>
@@ -182,5 +182,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </AuthProvider>
   );
 }
-
-    
