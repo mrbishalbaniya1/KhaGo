@@ -85,8 +85,12 @@ export default function LoginPage() {
   const [createdUser, setCreatedUser] = useState<FirebaseAuthUser | null>(null);
 
   useEffect(() => {
-    if (searchParams.get('approval') === 'pending') {
+    const approvalParam = searchParams.get('approval');
+    if (approvalParam === 'pending') {
       setShowApprovalMessage(true);
+      // To prevent the message from showing again on refresh,
+      // we can remove the query param from the URL.
+      window.history.replaceState(null, '', '/login');
     }
   }, [searchParams]);
 
@@ -112,7 +116,8 @@ export default function LoginPage() {
       if (userDoc.exists()) {
         const dbUser = userDoc.data();
         if (dbUser.status === 'pending') {
-            router.push('/login?approval=pending');
+            setShowApprovalMessage(true);
+            auth.signOut();
         } else {
             router.push('/dashboard');
         }
@@ -128,7 +133,8 @@ export default function LoginPage() {
         };
         await setDoc(userDocRef, userData);
         if (userData.status === 'pending') {
-            router.push('/login?approval=pending');
+            setShowApprovalMessage(true);
+            auth.signOut();
         } else {
             router.push('/dashboard');
         }
@@ -206,15 +212,13 @@ export default function LoginPage() {
         await setDoc(doc(db, "users", createdUser.uid), userData);
         await setDoc(doc(db, "users_by_email", userData.email!), { uid: createdUser.uid });
 
-        toast({
-          title: 'Account Created',
-          description: "You've successfully signed up! Your account is pending approval.",
-        });
         await auth.signOut();
-        setSignupStep(1);
         setCreatedUser(null);
+        signupForm.reset();
+        businessInfoForm.reset();
+        setSignupStep(1);
+        setShowApprovalMessage(true);
         setActiveTab('login');
-        router.push('/login?approval=pending');
 
     } catch (error: any) {
          toast({
