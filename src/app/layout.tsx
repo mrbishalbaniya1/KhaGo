@@ -6,8 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'CulinaryFlow',
-  description: 'Restaurant Management App by Firebase Studio',
+  title: 'KhaGo',
+  description: 'Restaurant Management App by Bishal Baniya',
   manifest: '/manifest.json',
   icons: {
     apple: '/apple-touch-icon.png',
