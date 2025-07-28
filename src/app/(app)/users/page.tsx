@@ -115,7 +115,7 @@ export default function UsersPage() {
     defaultValues: {
       name: '',
       email: '',
-      role: 'employee',
+      role: userRole === 'superadmin' ? 'manager' : 'employee',
       status: 'approved',
       mobileNumber: '',
       address: '',
@@ -128,13 +128,16 @@ export default function UsersPage() {
 
   const onAddUserSubmit = async (values: z.infer<typeof userSchema>) => {
     if (!user) return;
+
+    const newUser = {
+      ...values,
+      status: 'approved', // Users added manually are auto-approved
+      avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
+      ...(userRole === 'manager' && { managerId: user.uid }),
+    };
+
     try {
-      await addDoc(collection(db, 'users'), {
-        ...values,
-        managerId: user.uid,
-        status: 'approved', // Employees added by manager are auto-approved
-        avatar: `https://i.pravatar.cc/150?u=${Date.now()}`,
-      });
+      await addDoc(collection(db, 'users'), newUser);
       toast({
         title: 'User Added',
         description: `${values.name} has been added successfully.`,
@@ -202,7 +205,9 @@ export default function UsersPage() {
   const pageTitle = userRole === 'superadmin' ? 'Managers' : 'Team Members';
   const pageDescription = userRole === 'superadmin' ? 'Manage all restaurant managers.' : 'Manage your team members and their roles.';
   const availableRoles = userRole === 'superadmin' ? managerRoles : employeeRoles;
-
+  const addButtonLabel = userRole === 'superadmin' ? 'Add Manager' : 'Add Employee';
+  const dialogTitle = userRole === 'superadmin' ? 'Add New Manager' : 'Add New Employee';
+  const dialogDescription = userRole === 'superadmin' ? 'Fill in the details to add a new manager.' : 'Fill in the details to invite a new employee.';
 
   return (
     <>
@@ -212,20 +217,17 @@ export default function UsersPage() {
             <CardTitle>{pageTitle}</CardTitle>
             <CardDescription>{pageDescription}</CardDescription>
           </div>
-          {userRole === 'manager' && (
             <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
                 <DialogTrigger asChild>
                 <Button size="sm">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Employee
+                    {addButtonLabel}
                 </Button>
                 </DialogTrigger>
                 <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Add New Employee</DialogTitle>
-                    <DialogDescription>
-                    Fill in the details to invite a new employee.
-                    </DialogDescription>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
+                    <DialogDescription>{dialogDescription}</DialogDescription>
                 </DialogHeader>
                 <Form {...addUserForm}>
                     <form
@@ -323,7 +325,6 @@ export default function UsersPage() {
                 </Form>
                 </DialogContent>
             </Dialog>
-          )}
         </CardHeader>
         <CardContent>
           <Table>
@@ -541,3 +542,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    
