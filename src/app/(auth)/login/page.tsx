@@ -39,7 +39,7 @@ import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name is required.' }),
@@ -216,9 +216,7 @@ export default function LoginPage() {
         setCreatedUser(null);
         signupForm.reset();
         businessInfoForm.reset();
-        setSignupStep(1);
-        setShowApprovalMessage(true);
-        setActiveTab('login');
+        setSignupStep(3);
 
     } catch (error: any) {
          toast({
@@ -251,6 +249,12 @@ export default function LoginPage() {
         setIsLoading(false);
     }
   };
+  
+  const handleReturnToLogin = () => {
+    setSignupStep(1);
+    setActiveTab('login');
+    setShowApprovalMessage(false);
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -259,19 +263,19 @@ export default function LoginPage() {
         <span className="font-headline text-2xl font-bold tracking-tight">KhaGo</span>
       </div>
        <div className="w-full max-w-md space-y-4">
-        {showApprovalMessage && (
+        {showApprovalMessage && ! (activeTab === 'signup' && signupStep === 3) && (
           <Alert variant="default" className="bg-amber-100 border-amber-300 text-amber-800">
             <AlertTriangle className="h-4 w-4 !text-amber-800" />
             <AlertTitle>Account Pending Approval</AlertTitle>
             <AlertDescription>
-              Your account has been created and is awaiting approval from a superadmin. You will be able to log in once your account is approved.
+              Your account is awaiting approval from a superadmin. You will be able to log in once your account is approved.
             </AlertDescription>
           </Alert>
         )}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login" disabled={signupStep === 2}>Login</TabsTrigger>
-            <TabsTrigger value="signup" disabled={signupStep === 2}>Sign Up</TabsTrigger>
+            <TabsTrigger value="login" disabled={signupStep !== 1}>Login</TabsTrigger>
+            <TabsTrigger value="signup" disabled={signupStep !== 1}>Sign Up</TabsTrigger>
           </TabsList>
           <TabsContent value="login">
             <Card>
@@ -338,7 +342,7 @@ export default function LoginPage() {
                 {signupStep === 1 && (
                   <>
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">Create an Account (Step 1/2)</CardTitle>
+                        <CardTitle className="text-2xl">Create an Account (Step 1/3)</CardTitle>
                         <CardDescription>
                         Sign up as a manager. Your account will require admin approval.
                         </CardDescription>
@@ -415,7 +419,7 @@ export default function LoginPage() {
                 {signupStep === 2 && (
                     <>
                     <CardHeader className="text-center">
-                        <CardTitle className="text-2xl">Business Information (Step 2/2)</CardTitle>
+                        <CardTitle className="text-2xl">Business Information (Step 2/3)</CardTitle>
                         <CardDescription>
                             Please provide some details about your business.
                         </CardDescription>
@@ -468,6 +472,23 @@ export default function LoginPage() {
                         </form>
                         </Form>
                     </CardContent>
+                    </>
+                )}
+                {signupStep === 3 && (
+                    <>
+                      <CardHeader className="text-center">
+                          <CardTitle className="text-2xl">Submission Complete (Step 3/3)</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                           <Alert variant="default" className="bg-green-100 border-green-300 text-green-800">
+                                <CheckCircle className="h-4 w-4 !text-green-800" />
+                                <AlertTitle>Account Pending Approval</AlertTitle>
+                                <AlertDescription>
+                                Your account has been created and is awaiting approval from a superadmin. You will be able to log in once your account is approved.
+                                </AlertDescription>
+                            </Alert>
+                            <Button className="w-full" onClick={handleReturnToLogin}>Return to Login</Button>
+                      </CardContent>
                     </>
                 )}
             </Card>
