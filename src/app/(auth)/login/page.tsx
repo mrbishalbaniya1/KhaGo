@@ -289,7 +289,7 @@ export default function LoginPage() {
                           <FormControl>
                             <Input
                               type="email"
-                              placeholder="sita.sharma@khago.np"
+                              placeholder="user@example.com"
                               {...field}
                               disabled={isLoading}
                             />
