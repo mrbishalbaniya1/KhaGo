@@ -146,26 +146,16 @@ export default function LoginPage() {
     } catch (error: any) {
        if (error.code === 'auth/user-disabled') {
             setShowApprovalMessage(true);
-        } else if (error.code === 'auth/invalid-credential') {
-            const userDocRef = doc(db, 'users_by_email', values.email);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const { uid } = userDoc.data();
-              const mainUserDoc = await getDoc(doc(db, 'users', uid));
-              if (mainUserDoc.exists() && mainUserDoc.data().status === 'pending') {
-                 setShowApprovalMessage(true);
-                 return;
-              }
-            }
+        } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
             toast({
                 title: 'Authentication Failed',
-                description: 'Invalid email or password.',
+                description: 'Invalid email or password. Please check your credentials and try again.',
                 variant: 'destructive',
             });
         } else {
              toast({
                 title: 'Authentication Failed',
-                description: error.message || 'An unexpected error occurred.',
+                description: 'An unexpected error occurred. Please try again later.',
                 variant: 'destructive',
             });
         }
@@ -182,9 +172,15 @@ export default function LoginPage() {
         setCreatedUser(userCredential.user);
         setSignupStep(2);
     } catch (error: any) {
+        let description = 'An unexpected error occurred during sign-up. Please try again later.';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'This email address is already in use. Please use a different email or log in.';
+        } else if (error.code === 'auth/weak-password') {
+            description = 'The password is too weak. Please choose a stronger password.';
+        }
         toast({
             title: 'Sign Up Failed',
-            description: error.message || 'An unexpected error occurred.',
+            description,
             variant: 'destructive',
         });
     } finally {
@@ -223,7 +219,7 @@ export default function LoginPage() {
     } catch (error: any) {
          toast({
             title: 'Sign Up Failed',
-            description: error.message || 'An unexpected error occurred.',
+            description: 'An unexpected error occurred while saving business information.',
             variant: 'destructive',
         });
     } finally {
@@ -244,7 +240,7 @@ export default function LoginPage() {
     } catch (error: any) {
         toast({
             title: 'Google Sign-In Failed',
-            description: error.message || 'Could not sign in with Google. Please try again.',
+            description: 'Could not sign in with Google. Please try again.',
             variant: 'destructive',
         });
     } finally {
