@@ -21,6 +21,9 @@ const withPWA = require('next-pwa')({
             },
         },
     ],
+    fallbacks: {
+        document: '/_offline',
+    }
 });
 
 /** @type {import('next').NextConfig} */
