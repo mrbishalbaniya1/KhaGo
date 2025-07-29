@@ -276,6 +276,33 @@ export default function UsersPage() {
        toast({ title: 'Error', description: 'Failed to delete user.', variant: 'destructive' });
     }
   };
+
+  const handleSuspendUser = async (uid: string) => {
+    try {
+      const userDoc = doc(db, 'users', uid);
+      await updateDoc(userDoc, { status: 'suspended' });
+      toast({
+        title: 'User Suspended',
+        description: 'The user has been suspended and can no longer log in.',
+        variant: 'destructive',
+      });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to suspend user.', variant: 'destructive' });
+    }
+  };
+
+  const handleUnsuspendUser = async (uid: string) => {
+    try {
+      const userDoc = doc(db, 'users', uid);
+      await updateDoc(userDoc, { status: 'approved' });
+      toast({
+        title: 'User Unsuspended',
+        description: 'The user has been unsuspended and can now log in.',
+      });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to unsuspend user.', variant: 'destructive' });
+    }
+  };
   
   if (userRole !== 'manager' && userRole !== 'superadmin') {
       return (
@@ -483,7 +510,7 @@ export default function UsersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                      <Badge variant={user.status === 'approved' ? 'default' : 'secondary'} className={`capitalize ${user.status === 'approved' ? 'bg-green-500' : ''}`}>
+                      <Badge variant={user.status === 'approved' ? 'default' : user.status === 'suspended' ? 'destructive' : 'secondary'} className={`capitalize ${user.status === 'approved' ? 'bg-green-500' : ''}`}>
                           {user.status}
                       </Badge>
                   </TableCell>
@@ -501,6 +528,15 @@ export default function UsersPage() {
                         <DropdownMenuItem onClick={() => handleEditClick(user)}>
                           Edit
                         </DropdownMenuItem>
+                        {user.status === 'suspended' ? (
+                            <DropdownMenuItem onClick={() => handleUnsuspendUser(user.uid)}>
+                                Unsuspend
+                            </DropdownMenuItem>
+                        ) : (
+                            <DropdownMenuItem onClick={() => handleSuspendUser(user.uid)} className="text-destructive">
+                                Suspend
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -590,6 +626,31 @@ export default function UsersPage() {
                         <SelectContent>
                           {availableRoles.map(role => (
                               <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={editUserForm.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {['pending', 'approved', 'rejected', 'suspended'].map(status => (
+                              <SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
