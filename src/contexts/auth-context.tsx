@@ -39,34 +39,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         setUser(user);
         
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-            const dbUser = userDocSnap.data() as User;
-             if (dbUser.status === 'pending') {
-                auth.signOut();
-                router.push('/login?approval=pending');
-                setLoading(false);
-                return;
-            }
-
-            setUserData(dbUser);
-            setUserRole(dbUser.role);
-
-            if (dbUser.role === 'superadmin') {
-              setManagerId(null);
-            } else if (dbUser.role === 'manager') {
-              setManagerId(user.uid);
-            } else {
-              setManagerId(dbUser.managerId || null);
-            }
-
-        } else {
-            // Handle case where user is authenticated but not in DB (e.g., during signup)
-            setUserRole(null);
-            setUserData(null);
+        // Explicitly check for superadmin email first
+        if (user.email === SUPER_ADMIN_EMAIL) {
+            const superAdminData: User = {
+                uid: user.uid,
+                email: user.email,
+                name: user.displayName || 'Super Admin',
+                role: 'superadmin',
+                status: 'approved',
+            };
+            setUserData(superAdminData);
+            setUserRole('superadmin');
             setManagerId(null);
+        } else {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const dbUser = userDocSnap.data() as User;
+                if (dbUser.status === 'pending') {
+                    auth.signOut();
+                    router.push('/login?approval=pending');
+                    setLoading(false);
+                    return;
+                }
+
+                setUserData(dbUser);
+                setUserRole(dbUser.role);
+
+                if (dbUser.role === 'manager') {
+                    setManagerId(user.uid);
+                } else {
+                    setManagerId(dbUser.managerId || null);
+                }
+
+            } else {
+                // Handle case where user is authenticated but not in DB
+                setUserRole(null);
+                setUserData(null);
+                setManagerId(null);
+            }
         }
       } else {
         setUser(null);
@@ -82,16 +94,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Separate effect for live updates on user data
   useEffect(() => {
-    if (user?.uid) {
+    if (user?.uid && user.email !== SUPER_ADMIN_EMAIL) {
       const userDocRef = doc(db, 'users', user.uid);
       const unsubFromDoc = onSnapshot(userDocRef, (docSnap) => {
          if (docSnap.exists()) {
             const dbUser = docSnap.data() as User;
             setUserData(dbUser);
             setUserRole(dbUser.role);
-            if (dbUser.role === 'superadmin') {
-              setManagerId(null);
-            } else if (dbUser.role === 'manager') {
+            if (dbUser.role === 'manager') {
               setManagerId(user.uid);
             } else {
               setManagerId(dbUser.managerId || null);
@@ -100,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       return () => unsubFromDoc();
     }
-  }, [user?.uid])
+  }, [user?.uid, user?.email]);
 
 
   return (
