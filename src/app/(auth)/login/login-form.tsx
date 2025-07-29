@@ -39,7 +39,7 @@ import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
@@ -277,16 +277,49 @@ export default function LoginForm() {
     setShowApprovalMessage(false);
   };
 
-  const CaptchaPlaceholder = () => (
-    <div className="flex items-center space-x-2 p-4 my-4 bg-muted/50 border border-muted rounded-lg">
-        <Checkbox id="captcha-checkbox" />
-        <Label htmlFor="captcha-checkbox" className="text-sm font-medium">I'm not a robot</Label>
-        <div className="ml-auto flex flex-col items-center">
-            <Icons.logo className="h-6 w-6 text-muted-foreground opacity-50" />
-            <span className="text-xs text-muted-foreground opacity-50">reCAPTCHA</span>
+  const CaptchaPlaceholder = () => {
+    const [captcha, setCaptcha] = useState('');
+  
+    const generateCaptcha = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let newCaptcha = '';
+      for (let i = 0; i < 6; i++) {
+        newCaptcha += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setCaptcha(newCaptcha);
+    };
+  
+    useEffect(() => {
+      generateCaptcha();
+    }, []);
+  
+    return (
+      <div className="space-y-2">
+        <Label>Are you human?</Label>
+        <div className="flex items-center gap-4">
+            <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 p-2 bg-muted rounded-md text-center font-mono tracking-widest text-lg select-none">
+                    {captcha}
+                </div>
+                <Button variant="ghost" size="icon" onClick={generateCaptcha} type="button">
+                    <RefreshCw className="h-4 w-4" />
+                </Button>
+            </div>
+            <div className="w-1/2">
+                <Input
+                    placeholder="Enter CAPTCHA"
+                    className="text-center"
+                    // Note: In a real app, you'd add this to your form state
+                    // and validate it on submission.
+                />
+            </div>
         </div>
-    </div>
-  );
+        <p className="text-xs text-muted-foreground">
+            This is a UI placeholder. Full CAPTCHA requires backend validation.
+        </p>
+      </div>
+    );
+  };
 
   return (
        <div className="w-full max-w-md space-y-4">
@@ -375,7 +408,7 @@ export default function LoginForm() {
                       )}
                     />
                     <CaptchaPlaceholder />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button type="submit" className="w-full mt-4" disabled={isLoading}>
                       {isLoading ? 'Signing In...' : 'Sign In'}
                     </Button>
                   </form>
@@ -455,7 +488,7 @@ export default function LoginForm() {
                             )}
                             />
                             <CaptchaPlaceholder />
-                            <Button type="submit" className="w-full" disabled={isLoading}>
+                            <Button type="submit" className="w-full mt-4" disabled={isLoading}>
                             {isLoading ? 'Creating Account...' : 'Continue'}
                             </Button>
                         </form>
