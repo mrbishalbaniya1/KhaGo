@@ -322,6 +322,8 @@ export default function OrdersPage() {
         paymentMethod: values.paymentMethod,
         paymentStatus: paymentStatus,
         managerId: managerId,
+        orderTakenBy: userData?.name,
+        cashierName: (paymentStatus === 'paid') ? userData?.name : undefined,
     };
 
     try {
@@ -398,7 +400,7 @@ export default function OrdersPage() {
         paymentStatus = 'paid';
     }
     
-    const updatedOrder = { 
+    const updatedOrder: Partial<Order> = { 
         ...values,
         tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
         customerName: values.customerName || '',
@@ -411,6 +413,10 @@ export default function OrdersPage() {
         subtotal,
         totalPrice,
      };
+
+     if (paymentStatus === 'paid' && !selectedOrder.cashierName) {
+        updatedOrder.cashierName = userData?.name;
+     }
      
     try {
         const orderDoc = doc(db, 'orders', selectedOrder.id);
@@ -490,9 +496,19 @@ export default function OrdersPage() {
     if (paymentDetails.method === 'cash' || paymentDetails.method === 'online') {
       status = 'paid';
     }
+
+    const updateData: Partial<Order> = {
+        paymentMethod: paymentDetails.method,
+        paymentStatus: status,
+    };
+
+    if (status === 'paid' && !selectedOrder.cashierName) {
+        updateData.cashierName = userData?.name;
+    }
+
     try {
         const orderDoc = doc(db, 'orders', selectedOrder.id);
-        await updateDoc(orderDoc, { paymentMethod: paymentDetails.method, paymentStatus: status });
+        await updateDoc(orderDoc, updateData);
         toast({
         title: 'Payment Updated',
         description: `Payment details for order #${selectedOrder.tokenNumber} have been updated.`,
