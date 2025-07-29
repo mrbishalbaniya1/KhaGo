@@ -121,11 +121,14 @@ export default function LoginForm() {
             router.push('/dashboard');
         }
       } else {
+        // This case should ideally not be hit for google sign in anymore
+        // as we check before calling this function.
+        // It remains for the email signup flow.
         const userData = {
             name: user.displayName,
             email: user.email,
-            role: 'customer',
-            status: 'approved',
+            role: 'manager',
+            status: 'pending',
             avatar: user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`,
             uid: user.uid,
             ...additionalData,
@@ -209,7 +212,9 @@ export default function LoginForm() {
             ...values,
         };
         await setDoc(doc(db, "users", createdUser.uid), userData);
-        await setDoc(doc(db, "users_by_email", createdUser.email), { uid: createdUser.uid });
+        if (createdUser.email) {
+            await setDoc(doc(db, "users_by_email", createdUser.email), { uid: createdUser.uid });
+        }
 
         await auth.signOut();
         setCreatedUser(null);
@@ -233,11 +238,32 @@ export default function LoginForm() {
     setShowApprovalMessage(false);
     try {
         const result = await signInWithPopup(auth, googleProvider);
-        await handleUserInDb(result.user);
-        toast({
-            title: 'Login Successful',
-            description: 'Welcome!',
-        });
+        const { user } = result;
+        
+        // Check if user exists in Firestore
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+            // User exists, proceed with login check
+            const dbUser = userDoc.data();
+            if (dbUser.status === 'pending') {
+                setShowApprovalMessage(true);
+                await auth.signOut();
+            } else {
+                 toast({ title: 'Login Successful', description: 'Welcome back!' });
+                 router.push('/dashboard');
+            }
+        } else {
+            // User does not exist, do not create a new user.
+            // Force sign out and show an error message.
+            await auth.signOut();
+            toast({
+                title: 'Login Failed',
+                description: "Your account was not found. Please sign up first.",
+                variant: 'destructive',
+            });
+        }
     } catch (error: any) {
         toast({
             title: 'Google Sign-In Failed',
