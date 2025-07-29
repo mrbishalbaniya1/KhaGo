@@ -309,21 +309,21 @@ export default function OrdersPage() {
 
     const newOrder: Omit<Order, 'id'> = {
         tokenNumber: `A${(Math.floor(Math.random() * 900) + 100)}`,
-        tableNumber: values.tableNumber ? Number(values.tableNumber) : undefined,
-        customerName: values.customerName,
         products: newOrderProducts,
         subtotal: subtotal,
         discount: discount,
         tip: tip,
         totalPrice: totalPrice,
-        notes: values.notes,
         status: 'pending',
         createdAt: Timestamp.now(),
         paymentMethod: values.paymentMethod,
         paymentStatus: paymentStatus,
         managerId: managerId,
-        orderTakenBy: userData?.name,
-        cashierName: (paymentStatus === 'paid') ? userData?.name : undefined,
+        ...(values.tableNumber && { tableNumber: Number(values.tableNumber) }),
+        ...(values.customerName && { customerName: values.customerName }),
+        ...(values.notes && { notes: values.notes }),
+        ...(userData?.name && { orderTakenBy: userData.name }),
+        ...(paymentStatus === 'paid' && userData?.name && { cashierName: userData.name }),
     };
 
     try {
@@ -414,8 +414,8 @@ export default function OrdersPage() {
         totalPrice,
      };
 
-     if (paymentStatus === 'paid' && !selectedOrder.cashierName) {
-        updatedOrder.cashierName = userData?.name;
+     if (paymentStatus === 'paid' && !selectedOrder.cashierName && userData?.name) {
+        updatedOrder.cashierName = userData.name;
      }
      
     try {
@@ -502,8 +502,8 @@ export default function OrdersPage() {
         paymentStatus: status,
     };
 
-    if (status === 'paid' && !selectedOrder.cashierName) {
-        updateData.cashierName = userData?.name;
+    if (status === 'paid' && !selectedOrder.cashierName && userData?.name) {
+        updateData.cashierName = userData.name;
     }
 
     try {
