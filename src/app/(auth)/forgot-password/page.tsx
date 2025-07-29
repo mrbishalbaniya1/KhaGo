@@ -25,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -33,21 +35,31 @@ const forgotPasswordSchema = z.object({
 export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
 
-  const onSubmit = (values: z.infer<typeof forgotPasswordSchema>) => {
-    // In a real application, you would handle the password reset logic here,
-    // e.g., by calling a Firebase function.
-    console.log('Password reset requested for:', values.email);
-    toast({
-      title: 'Password Reset Requested',
-      description: `If an account exists for ${values.email}, a password reset link has been sent.`,
-    });
-    setIsSubmitted(true);
+  const onSubmit = async (values: z.infer<typeof forgotPasswordSchema>) => {
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, values.email);
+      toast({
+        title: 'Password Reset Requested',
+        description: `If an account exists for ${values.email}, a password reset link has been sent.`,
+      });
+      setIsSubmitted(true);
+    } catch (error: any) {
+       toast({
+        title: 'Error',
+        description: 'Failed to send password reset email. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -87,14 +99,15 @@ export default function ForgotPasswordPage() {
                                 type="email"
                                 placeholder="user@example.com"
                                 {...field}
+                                disabled={isLoading}
                             />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full">
-                        Send Reset Link
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? 'Sending...' : 'Send Reset Link'}
                     </Button>
                     </form>
                 </Form>
