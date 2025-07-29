@@ -42,6 +42,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import Link from 'next/link';
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name is required.' }),
@@ -371,7 +372,14 @@ export default function LoginForm() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                           <div className="flex items-center justify-between">
+                            <FormLabel>Password</FormLabel>
+                             <Link href="/forgot-password"
+                                className="text-sm font-medium text-primary hover:underline"
+                              >
+                                Forgot password?
+                              </Link>
+                           </div>
                           <FormControl>
                             <Input
                               type="password"
