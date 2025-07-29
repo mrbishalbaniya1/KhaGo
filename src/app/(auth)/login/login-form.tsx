@@ -48,9 +48,9 @@ const signupSchema = z.object({
 });
 
 const businessInfoSchema = z.object({
-  businessName: z.string().min(2, { message: 'Business name is required.' }),
-  mobileNumber: z.string().min(1, 'Mobile number is required.'),
-  address: z.string().min(1, 'Address is required.'),
+  businessName: z.string().min(2, { message: 'Business name must be at least 2 characters.' }),
+  mobileNumber: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit mobile number.' }),
+  address: z.string().min(5, { message: 'Address must be at least 5 characters.' }),
 });
 
 const loginSchema = z.object({
@@ -467,7 +467,7 @@ export default function LoginForm() {
                                     <FormItem>
                                         <FormLabel>Mobile Number</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="+977-98xxxxxxxx" {...field} disabled={isLoading} />
+                                            <Input placeholder="e.g. 9812345678" {...field} disabled={isLoading} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -517,3 +517,5 @@ export default function LoginForm() {
       </div>
   );
 }
+
+    
