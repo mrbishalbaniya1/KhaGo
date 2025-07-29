@@ -39,7 +39,9 @@ import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name is required.' }),
@@ -56,6 +58,7 @@ const businessInfoSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
+  rememberMe: z.boolean().default(false),
 });
 
 async function generateUniqueUsername(businessName: string): Promise<string> {
@@ -95,7 +98,7 @@ export default function LoginForm() {
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', rememberMe: true },
   });
 
   const signupForm = useForm<z.infer<typeof signupSchema>>({
@@ -121,9 +124,6 @@ export default function LoginForm() {
             router.push('/dashboard');
         }
       } else {
-        // This case should ideally not be hit for google sign in anymore
-        // as we check before calling this function.
-        // It remains for the email signup flow.
         const userData = {
             name: user.displayName,
             email: user.email,
@@ -240,12 +240,10 @@ export default function LoginForm() {
         const result = await signInWithPopup(auth, googleProvider);
         const { user } = result;
         
-        // Check if user exists in Firestore
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-            // User exists, proceed with login check
             const dbUser = userDoc.data();
             if (dbUser.status === 'pending') {
                 setShowApprovalMessage(true);
@@ -255,8 +253,6 @@ export default function LoginForm() {
                  router.push('/dashboard');
             }
         } else {
-            // User does not exist, do not create a new user.
-            // Force sign out and show an error message.
             await auth.signOut();
             toast({
                 title: 'Login Failed',
@@ -280,6 +276,16 @@ export default function LoginForm() {
     setActiveTab('login');
     setShowApprovalMessage(false);
   };
+
+  const CaptchaPlaceholder = () => (
+    <div className="flex items-center justify-center p-4 my-4 bg-muted/50 border-dashed border-2 border-muted rounded-lg">
+        <div className="text-center text-muted-foreground">
+            <ShieldCheck className="mx-auto h-8 w-8 mb-2" />
+            <p className="text-sm font-medium">CAPTCHA Placeholder</p>
+            <p className="text-xs">This would be a real CAPTCHA in production.</p>
+        </div>
+    </div>
+  );
 
   return (
        <div className="w-full max-w-md space-y-4">
@@ -344,6 +350,30 @@ export default function LoginForm() {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={loginForm.control}
+                      name="rememberMe"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                           <FormControl>
+                            <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                disabled={isLoading}
+                                />
+                           </FormControl>
+                           <div className="space-y-1 leading-none">
+                             <Label
+                                htmlFor="rememberMe"
+                                className="font-normal"
+                             >
+                               Remember me
+                             </Label>
+                           </div>
+                        </FormItem>
+                      )}
+                    />
+                    <CaptchaPlaceholder />
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? 'Signing In...' : 'Sign In'}
                     </Button>
@@ -423,6 +453,7 @@ export default function LoginForm() {
                                 </FormItem>
                             )}
                             />
+                            <CaptchaPlaceholder />
                             <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? 'Creating Account...' : 'Continue'}
                             </Button>
@@ -517,5 +548,3 @@ export default function LoginForm() {
       </div>
   );
 }
-
-    
