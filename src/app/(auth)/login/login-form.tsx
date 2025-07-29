@@ -278,11 +278,12 @@ export default function LoginForm() {
   };
 
   const CaptchaPlaceholder = () => (
-    <div className="flex items-center justify-center p-4 my-4 bg-muted/50 border-dashed border-2 border-muted rounded-lg">
-        <div className="text-center text-muted-foreground">
-            <ShieldCheck className="mx-auto h-8 w-8 mb-2" />
-            <p className="text-sm font-medium">CAPTCHA Placeholder</p>
-            <p className="text-xs">This would be a real CAPTCHA in production.</p>
+    <div className="flex items-center space-x-2 p-4 my-4 bg-muted/50 border border-muted rounded-lg">
+        <Checkbox id="captcha-checkbox" />
+        <Label htmlFor="captcha-checkbox" className="text-sm font-medium">I'm not a robot</Label>
+        <div className="ml-auto flex flex-col items-center">
+            <Icons.logo className="h-6 w-6 text-muted-foreground opacity-50" />
+            <span className="text-xs text-muted-foreground opacity-50">reCAPTCHA</span>
         </div>
     </div>
   );
