@@ -28,6 +28,16 @@ import {
   DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 
 export default function AdminPage() {
@@ -67,6 +77,20 @@ export default function AdminPage() {
       toast({ title: 'Error', description: 'Failed to approve manager.', variant: 'destructive' });
     }
   };
+
+  const handleRejectUser = async (uid: string) => {
+    try {
+      const userDoc = doc(db, 'users', uid);
+      await updateDoc(userDoc, { status: 'rejected' });
+      toast({
+        title: 'Manager Rejected',
+        description: 'The manager has been rejected.',
+        variant: 'destructive',
+      });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to reject manager.', variant: 'destructive' });
+    }
+  }
 
   const handleViewClick = (user: User) => {
     setSelectedUser(user);
@@ -121,6 +145,25 @@ export default function AdminPage() {
                                 <TableCell className="text-right">
                                     <div className="flex gap-2 justify-end">
                                         <Button variant="outline" size="sm" onClick={() => handleViewClick(user)}>View Details</Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="destructive" size="sm">Reject</Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure you want to reject this manager?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. The user will not be able to log in.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleRejectUser(user.uid)}>
+                                                    Confirm Reject
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                         <Button size="sm" onClick={() => handleApproveUser(user.uid)}>Approve</Button>
                                     </div>
                                 </TableCell>

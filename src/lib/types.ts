@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 import { Timestamp } from 'firebase/firestore';
 
@@ -10,7 +11,7 @@ export type User = {
   name?: string;
   email: string;
   role: UserRole;
-  status: 'pending' | 'approved';
+  status: 'pending' | 'approved' | 'rejected';
   avatar?: string;
   lastSeen?: string;
   username?: string;
@@ -24,7 +25,7 @@ export const userSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email." }),
   role: z.enum(userRoles, { required_error: 'Role is required.' }),
-  status: z.enum(['pending', 'approved'], { required_error: 'Status is required.' }),
+  status: z.enum(['pending', 'approved', 'rejected'], { required_error: 'Status is required.' }),
   username: z.string().optional(),
   businessName: z.string().optional(),
   mobileNumber: z.string().optional(),
