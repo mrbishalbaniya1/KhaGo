@@ -43,7 +43,6 @@ const navItems = [
   { href: '/products', label: 'Products', icon: Package },
   { href: '/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/expenses', label: 'Expenses', icon: Banknote },
-  { href: '/pricing-assistant', label: 'AI Pricing', icon: BarChart2 },
   { href: '/reports', label: 'Reports', icon: AreaChart },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/users', label: 'Team', icon: Users },
