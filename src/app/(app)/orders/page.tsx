@@ -304,6 +304,8 @@ export default function OrdersPage() {
     let paymentStatus = values.paymentStatus;
     if (values.paymentMethod === 'cash' || values.paymentMethod === 'online') {
         paymentStatus = 'paid';
+    } else if (values.paymentMethod === 'pending') {
+        paymentStatus = 'pending';
     }
 
 
@@ -395,9 +397,11 @@ export default function OrdersPage() {
     const tip = Number(values.tip || 0);
     const totalPrice = subtotal - discount + tip;
 
-     let paymentStatus = values.paymentStatus;
+    let paymentStatus = values.paymentStatus;
     if (values.paymentMethod === 'cash' || values.paymentMethod === 'online') {
         paymentStatus = 'paid';
+    } else if (values.paymentMethod === 'pending') {
+        paymentStatus = 'pending';
     }
     
     const updatedOrder: Partial<Order> = { 
