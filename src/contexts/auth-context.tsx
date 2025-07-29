@@ -63,6 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setLoading(false);
                     return;
                 }
+                 if (dbUser.status === 'suspended') {
+                    await auth.signOut();
+                    router.push('/login?status=suspended');
+                    setLoading(false);
+                    return;
+                }
 
                 setUserData(dbUser);
                 setUserRole(dbUser.role);
@@ -99,6 +105,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const unsubFromDoc = onSnapshot(userDocRef, (docSnap) => {
          if (docSnap.exists()) {
             const dbUser = docSnap.data() as User;
+            if (dbUser.status === 'suspended') {
+                auth.signOut();
+                router.push('/login?status=suspended');
+                return;
+            }
             setUserData(dbUser);
             setUserRole(dbUser.role);
             if (dbUser.role === 'manager') {
@@ -110,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       return () => unsubFromDoc();
     }
-  }, [user?.uid, user?.email]);
+  }, [user?.uid, user?.email, router]);
 
 
   return (

@@ -39,7 +39,7 @@ import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw, ShieldCheck, Ban } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
@@ -84,6 +84,7 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   const [showApprovalMessage, setShowApprovalMessage] = useState(false);
+  const [showSuspendedMessage, setShowSuspendedMessage] = useState(false);
   const [signupStep, setSignupStep] = useState(1);
   const [createdUser, setCreatedUser] = useState<FirebaseAuthUser | null>(null);
 
@@ -91,9 +92,12 @@ export default function LoginForm() {
     const approvalParam = searchParams.get('approval');
     if (approvalParam === 'pending') {
       setShowApprovalMessage(true);
-      // To prevent the message from showing again on refresh,
-      // we can remove the query param from the URL.
       window.history.replaceState(null, '', '/login');
+    }
+    const statusParam = searchParams.get('status');
+    if (statusParam === 'suspended') {
+        setShowSuspendedMessage(true);
+        window.history.replaceState(null, '', '/login');
     }
   }, [searchParams]);
 
@@ -148,6 +152,7 @@ export default function LoginForm() {
   const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     setShowApprovalMessage(false);
+    setShowSuspendedMessage(false);
     try {
         await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({ title: 'Login Successful', description: 'Welcome back!' });
@@ -330,6 +335,15 @@ export default function LoginForm() {
             <AlertTitle>Account Pending Approval</AlertTitle>
             <AlertDescription>
               Your account is awaiting approval from a superadmin. You will be able to log in once your account is approved.
+            </AlertDescription>
+          </Alert>
+        )}
+         {showSuspendedMessage && (
+          <Alert variant="destructive">
+            <Ban className="h-4 w-4" />
+            <AlertTitle>Account Suspended</AlertTitle>
+            <AlertDescription>
+              Your account has been suspended. Please contact support for assistance.
             </AlertDescription>
           </Alert>
         )}
