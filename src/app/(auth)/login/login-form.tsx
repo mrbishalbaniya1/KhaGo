@@ -194,7 +194,7 @@ export default function LoginForm() {
   };
 
   const onBusinessInfoSubmit = async (values: z.infer<typeof businessInfoSchema>) => {
-    if (!createdUser) return;
+    if (!createdUser || !createdUser.email) return;
     setIsLoading(true);
     try {
         const username = await generateUniqueUsername(values.businessName);
@@ -209,7 +209,7 @@ export default function LoginForm() {
             ...values,
         };
         await setDoc(doc(db, "users", createdUser.uid), userData);
-        await setDoc(doc(db, "users_by_email", userData.email!), { uid: createdUser.uid });
+        await setDoc(doc(db, "users_by_email", createdUser.email), { uid: createdUser.uid });
 
         await auth.signOut();
         setCreatedUser(null);
